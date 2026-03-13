@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 
-const { checkJwt } = require('./middlewares/auth');  // tu middleware JWT actual
+const { checkJwt } = require('./middlewares/auth');  // middleware JWT actual
 const { requireRole } = require('./middlewares/roles');  // middleware de roles que creaste
 const restaurantsRoutes = require('./routes/restaurants.routes'); // ruta que hiciste
 

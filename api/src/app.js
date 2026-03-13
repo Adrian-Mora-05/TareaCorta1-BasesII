@@ -1,17 +1,18 @@
-const express = require('express');
-const { checkJwt } = require('./middlewares/auth');
+import express from 'express';
+import restaurantsRoutes from './routes/restaurants.routes.js'; 
 
 const app = express();
+
 app.use(express.json());
 
-// Ruta pública
-app.get('/public', (req, res) => {
-  res.send('Esta ruta es pública, no necesita token.');
+app.use('/restaurants', restaurantsRoutes);
+
+app.get('/', (req, res) => {
+  res.send('API Restaurant funcionando correctamente 🚀');
 });
 
-// Ruta protegida
-app.get('/protected', checkJwt, (req, res) => {
-  res.send(`Hola ${req.user.preferred_username}, accediste con token válido`);
+app.get('/public', (req, res) => {
+  res.send('Ruta pública');
 });
 
 app.listen(3000, () => {

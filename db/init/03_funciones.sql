@@ -93,8 +93,8 @@ AS $$
 BEGIN
 
 RETURN QUERY
-SELECT id,nombre,direccion,telefono
-FROM restaurante;
+SELECT r.id,r.nombre,r.direccion,r.telefono
+FROM restaurant.restaurante r;
 
 END;
 $$;

@@ -1,20 +1,11 @@
-const express = require('express');
-const router = express.Router();
+import { Router } from 'express';
+import { checkJwt } from '../middlewares/auth.js';
+import { requireRole } from '../middlewares/roles.js';
+import { createRestaurant, getRestaurants } from '../controllers/restaurants.controller.js';
 
-const { checkJwt } = require('../middlewares/auth');
-const { requireRole } = require('../middlewares/roles');
+const router = Router();
 
-router.post(
-  '/',
-  checkJwt,
-  requireRole('admin'),
-  (req, res) => {
-    res.send("Restaurante creado");
-  }
-);
+router.post('/', checkJwt, requireRole('admin'), createRestaurant);
+router.get('/', getRestaurants);
 
-router.get('/', (req, res) => {
-  res.send("Lista de restaurantes");
-});
-
-module.exports = router;
+export default router;

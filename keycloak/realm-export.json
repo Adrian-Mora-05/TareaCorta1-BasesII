@@ -1,6 +1,7 @@
 {
   "realm": "restaurant",
   "enabled": true,
+  "frontendUrl": "http://keycloak:8080",
   "roles": {
     "realm": [
       { "name": "admin" },
@@ -46,6 +47,9 @@
           "temporary": false
         }
       ],
+      "firstName": "Admin",
+      "lastName": "Principal",
+      "email": "admin1@restaurant.com",
       "realmRoles": ["admin"],
       "emailVerified": true,
       "requiredActions": []
@@ -61,6 +65,9 @@
         }
       ],
       "realmRoles": ["cliente"],
+      "firstName": "Cliente",
+      "lastName": "Demo",
+      "email": "cliente1@restaurant.com",
       "emailVerified": true,
       "requiredActions": []
     }
