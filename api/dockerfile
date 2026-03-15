@@ -13,6 +13,10 @@ RUN npm install
 # Copiar el resto del código
 COPY . .
 
+# Poner solo las variables de entorno necesarias para la aplicación
+# ENV PORT 
+# ENV POSTGRES_DB_HOST
+
 # Exponer el puerto
 EXPOSE 3000
 

@@ -1,7 +1,6 @@
 {
   "realm": "restaurant",
   "enabled": true,
-  "frontendUrl": "http://keycloak:8080",
   "roles": {
     "realm": [
       { "name": "admin" },

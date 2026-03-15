@@ -59,7 +59,7 @@ $$;
 
 
 --4. RegistrarRestaurante
-CREATE OR REPLACE FUNCTION registrar_restaurante(
+CREATE OR REPLACE FUNCTION restaurant.registrar_restaurante(
     p_nombre VARCHAR,
     p_direccion TEXT,
     p_telefono VARCHAR
@@ -70,7 +70,7 @@ AS $$
 DECLARE new_id INT;
 BEGIN
 
-INSERT INTO restaurante (nombre, direccion, telefono)
+INSERT INTO restaurant.restaurante (nombre, direccion, telefono)
 VALUES (p_nombre, p_direccion, p_telefono)
 RETURNING id INTO new_id;
 
@@ -101,7 +101,7 @@ $$;
 
 
 --6. CrearMenú
-CREATE OR REPLACE FUNCTION crear_menu(
+CREATE OR REPLACE FUNCTION restaurant.crear_menu(
     p_nombre VARCHAR,
     p_id_restaurante INT
 )
@@ -111,9 +111,9 @@ AS $$
 DECLARE new_id INT;
 BEGIN
 
-INSERT INTO menu(nombre,id_restaurante)
+INSERT INTO restaurant.menu AS m(nombre,id_restaurante)
 VALUES(p_nombre,p_id_restaurante)
-RETURNING id INTO new_id;
+RETURNING m.id INTO new_id;
 
 RETURN new_id;
 
@@ -122,7 +122,7 @@ $$;
 
 
 --7. GetDetallesMenú
-CREATE OR REPLACE FUNCTION get_detalles_menu(p_id INT)
+CREATE OR REPLACE FUNCTION restaurant.get_detalles_menu(p_id INT)
 RETURNS TABLE(
     id INT,
     nombre VARCHAR,
@@ -134,16 +134,16 @@ AS $$
 BEGIN
 
 RETURN QUERY
-SELECT id,nombre,id_restaurante,ultima_actualizacion
-FROM menu
-WHERE id = p_id;
+SELECT m.id,m.nombre,m.id_restaurante,m.ultima_actualizacion
+FROM restaurant.menu m
+WHERE m.id = p_id;
 
 END;
 $$;
 
 
 --8. ActualizarMenú
-CREATE OR REPLACE FUNCTION actualizar_menu(
+CREATE OR REPLACE FUNCTION restaurant.actualizar_menu(
     p_id INT,
     p_nombre VARCHAR
 )
@@ -152,24 +152,24 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 
-UPDATE menu
+UPDATE restaurant.menu m
 SET nombre = p_nombre,
     ultima_actualizacion = CURRENT_TIMESTAMP
-WHERE id = p_id;
+WHERE m.id = p_id;
 
 END;
 $$;
 
 
 --9. BorrarMenú
-CREATE OR REPLACE FUNCTION borrar_menu(p_id INT)
+CREATE OR REPLACE FUNCTION restaurant.borrar_menu(p_id INT)
 RETURNS VOID
 LANGUAGE plpgsql
 AS $$
 BEGIN
 
-DELETE FROM menu
-WHERE id = p_id;
+DELETE FROM restaurant.menu m
+WHERE m.id = p_id;
 
 END;
 $$;

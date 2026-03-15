@@ -1,2 +1,0 @@
-CREATE DATABASE restaurantdb;
-CREATE DATABASE keycloak;

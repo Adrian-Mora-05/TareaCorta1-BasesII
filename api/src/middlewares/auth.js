@@ -13,6 +13,5 @@ export const checkJwt = jwt({
     jwksUri: `${KEYCLOAK_URL}/realms/restaurant/protocol/openid-connect/certs`
   }),
   audience: false,
-  issuer: `${KEYCLOAK_URL}/realms/restaurant`,
   algorithms: ['RS256']
 });

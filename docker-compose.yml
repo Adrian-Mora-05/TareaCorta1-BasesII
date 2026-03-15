@@ -1,18 +1,105 @@
+# services:
+ # db:
+ #   image: postgres:16
+ #   container_name: db
+ #   environment:
+ #     POSTGRES_USER: ${POSTGRES_USER}
+ #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+ #     POSTGRES_DB: ${POSTGRES_DB}
+ #   ports:
+ #     - "5432:5432"
+ #   volumes:
+ #     - pgdata:/var/lib/postgresql/data
+ #     - ./db/init:/docker-entrypoint-initdb.d
+ #   healthcheck:
+ #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+ #     interval: 10s
+ #     timeout: 5s
+ #     retries: 10
+
+ # keycloak:
+   # image: quay.io/keycloak/keycloak:24.0
+   # container_name: keycloak
+   # depends_on:
+    #  db:
+    #    condition: service_healthy
+   # environment:
+     # KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+     # KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+     # KC_DB: postgres
+     # KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB}
+     # KC_DB_USERNAME: ${POSTGRES_USER}
+    #  KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+   #   KC_IMPORT: /opt/keycloak/data/import/realm-export.json
+  #  volumes:
+   # - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+   # command: ["start-dev", "--import-realm"]
+   # ports:
+  #    - "8080:8080"
+
+ # api:
+ #   build: ./api
+ #   container_name: api
+ #   depends_on:
+ #     - db
+ #     - keycloak
+ #   environment:
+ #     DB_HOST: db
+ #     DB_PORT: 5432
+ #     DB_USER: ${POSTGRES_USER}
+ #     DB_PASSWORD: ${POSTGRES_PASSWORD}
+ #     DB_NAME: ${RESTAURANT_DB}
+ #     KEYCLOAK_URL: http://keycloak:8080
+ #   ports:
+ #     - "3000:3000"
+
+# volumes:
+ # pgdata:
+
+
+
+  
+  # Para iniciar los servicios, ejecuta:
+    
+   # docker-compose up -d
+    
+  # Esto levantará la base de datos PostgreSQL, el servidor Keycloak y la API Node.js.
+   # Asegúrate de que las variables de entorno en el archivo .env estén configuradas correctamente antes de iniciar los servicios.
+   
+
 services:
-  db:
+
+  db_api:
     image: postgres:16
-    container_name: db
+    container_name: db_api
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: ${RESTAURANT_DB}
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_api:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${RESTAURANT_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  db_keycloak:
+    image: postgres:16
+    container_name: db_keycloak
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${KEYCLOAK_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_keycloak:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${KEYCLOAK_DB}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -21,18 +108,20 @@ services:
     image: quay.io/keycloak/keycloak:24.0
     container_name: keycloak
     depends_on:
-      db:
+      db_keycloak:
         condition: service_healthy
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB}
+      KC_DB_URL: jdbc:postgresql://db_keycloak:5432/${KEYCLOAK_DB}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
       KC_IMPORT: /opt/keycloak/data/import/realm-export.json
     volumes:
-    - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     command: ["start-dev", "--import-realm"]
     ports:
       - "8080:8080"
@@ -41,10 +130,10 @@ services:
     build: ./api
     container_name: api
     depends_on:
-      - db
+      - db_api
       - keycloak
     environment:
-      DB_HOST: db
+      DB_HOST: db_api
       DB_PORT: 5432
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -54,4 +143,5 @@ services:
       - "3000:3000"
 
 volumes:
-  pgdata:
+  pgdata_api:
+  pgdata_keycloak:
