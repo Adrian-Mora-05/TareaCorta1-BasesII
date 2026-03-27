@@ -47,7 +47,8 @@ export async function update(req, res) {
     res.status(200).json(result);
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const status = error.message === 'Usuario no encontrado' ? 404 : 500;
+    res.status(status).json({ error: error.message });
   }
 }
 
@@ -65,6 +66,7 @@ export async function remove(req, res) {
     res.status(200).json(result);
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const status = error.message === 'Usuario no encontrado' ? 404 : 500;
+    res.status(status).json({ error: error.message });
   }
 }

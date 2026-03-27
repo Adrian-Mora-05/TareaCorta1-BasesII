@@ -21,4 +21,48 @@ router.post('/', checkJwt, requireRole('admin'), crear);
 // GET /restaurants
 router.get('/', checkJwt, listar);
 
+/**
+ * @swagger
+ * /restaurants:
+ *   post:
+ *     summary: Registrar un restaurante (solo administradores)
+ *     tags: [Restaurants]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nombre]
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *                 example: La Trattoria
+ *               direccion:
+ *                 type: string
+ *                 example: Calle 5, San José
+ *               telefono:
+ *                 type: string
+ *                 example: 2222-3333
+ *     responses:
+ *       201:
+ *         description: Restaurante registrado correctamente
+ *       400:
+ *         description: Nombre obligatorio
+ *       403:
+ *         description: Permisos insuficientes
+ *   get:
+ *     summary: Listar restaurantes disponibles
+ *     tags: [Restaurants]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de restaurantes
+ *       401:
+ *         description: Token inválido o ausente
+ */
+
 export default router;

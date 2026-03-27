@@ -176,7 +176,7 @@ $$;
 
 
 --10. Reservar
-CREATE OR REPLACE FUNCTION reservar(
+CREATE OR REPLACE FUNCTION restaurant.reservar(
     p_id_usuario INT,
     p_id_restaurante INT,
     p_id_mesa INT,
@@ -187,10 +187,28 @@ CREATE OR REPLACE FUNCTION reservar(
 RETURNS INT
 LANGUAGE plpgsql
 AS $$
-DECLARE new_id INT;
+DECLARE 
+    new_id INT;
+    conflicto INT;
 BEGIN
 
-INSERT INTO reservacion(
+-- Verificar conflictos de horario
+SELECT 1 INTO conflicto
+FROM restaurant.reservacion r
+WHERE r.id_mesa = p_id_mesa
+AND r.id_estado_reservacion = 1
+AND (
+    p_fecha < (r.fecha_hora + (r.duracion || ' minutes')::INTERVAL)
+    AND
+    (p_fecha + (p_duracion || ' minutes')::INTERVAL) > r.fecha_hora
+)
+LIMIT 1;
+
+IF conflicto IS NOT NULL THEN
+    RAISE EXCEPTION 'La mesa ya está reservada en ese horario';
+END IF;
+
+INSERT INTO restaurant.reservacion(
     id_usuario,
     id_restaurante,
     id_mesa,
@@ -223,7 +241,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
 
-UPDATE reservacion
+UPDATE restaurant.reservacion
 SET id_estado_reservacion = 2
 WHERE id = p_id;
 
@@ -232,20 +250,28 @@ $$;
 
 
 --12. RealizarPedido
-CREATE OR REPLACE FUNCTION realizar_pedido(
+CREATE OR REPLACE FUNCTION restaurant.realizar_pedido(
     p_id_usuario INT,
     p_id_restaurante INT,
     p_descripcion TEXT,
-    p_precio_total NUMERIC,
-    p_tipo_pedido INT
+    p_tipo_pedido INT,
+    p_platos JSON
 )
 RETURNS INT
 LANGUAGE plpgsql
 AS $$
-DECLARE new_id INT;
+DECLARE
+    new_id INT;
+    item JSON;
+    v_plato_id INT;
+    v_cantidad INT;
+    v_precio NUMERIC;
+    v_subtotal NUMERIC;
+    total NUMERIC := 0;
 BEGIN
 
-INSERT INTO pedido(
+-- Crear pedido vacío primero
+INSERT INTO restaurant.pedido(
     id_usuario,
     id_restaurante,
     descripcion,
@@ -257,11 +283,49 @@ VALUES(
     p_id_usuario,
     p_id_restaurante,
     p_descripcion,
-    p_precio_total,
+    0,
     1,
     p_tipo_pedido
 )
 RETURNING id INTO new_id;
+
+-- Recorrer platos
+FOR item IN SELECT * FROM json_array_elements(p_platos)
+LOOP
+    v_plato_id := (item->>'id_plato')::INT;
+    v_cantidad := (item->>'cantidad')::INT;
+
+    -- Obtener precio
+    SELECT precio INTO v_precio
+    FROM restaurant.plato
+    WHERE id = v_plato_id;
+
+    IF v_precio IS NULL THEN
+        RAISE EXCEPTION 'Plato % no existe', v_plato_id;
+    END IF;
+
+    v_subtotal := v_precio * v_cantidad;
+    total := total + v_subtotal;
+
+    -- Insert detalle
+    INSERT INTO restaurant.plato_x_pedido(
+        id_plato,
+        id_pedido,
+        cantidad,
+        subtotal
+    )
+    VALUES(
+        v_plato_id,
+        new_id,
+        v_cantidad,
+        v_subtotal
+    );
+END LOOP;
+
+-- Actualizar total
+UPDATE restaurant.pedido
+SET precio_total = total
+WHERE id = new_id;
 
 RETURN new_id;
 
@@ -285,15 +349,15 @@ AS $$
 BEGIN
 
 RETURN QUERY
-SELECT id,
-       id_usuario,
-       id_restaurante,
-       descripcion,
-       precio_total,
-       id_estado_pedido,
-       id_tipo_pedido
-FROM pedido
-WHERE id = p_id;
+SELECT p.id,
+       p.id_usuario,
+       p.id_restaurante,
+       p.descripcion,
+       p.precio_total,
+       p.id_estado_pedido,
+       p.id_tipo_pedido
+FROM restaurant.pedido p
+WHERE p.id = p_id;
 
 END;
 $$;
