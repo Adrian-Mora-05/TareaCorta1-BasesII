@@ -50,6 +50,27 @@ describe('Auth Controller - register', () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
+  test('403 - admin intenta crear admin usando realm_access.roles', async () => {
+    const req = {
+      body: { username: 'hack', email: 'h@h.com', password: '123', role: 'admin' },
+      auth: { realm_access: { roles: ['cliente'] } }
+    };
+    const res = mockRes();
+    await register(req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  test('201 - rol inválido se convierte en cliente', async () => {
+    mockRegistrarUsuario.mockResolvedValue(true);
+    const req = {
+      body: { username: 'juan', email: 'j@j.com', password: '123', role: 'superusuario' },
+      auth: null
+    };
+    const res = mockRes();
+    await register(req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
   test('500 - error del servicio', async () => {
     mockRegistrarUsuario.mockRejectedValue(new Error('Error de Keycloak'));
     const req = { body: { username: 'juan', email: 'j@j.com', password: '123' }, auth: null };
@@ -86,4 +107,13 @@ describe('Auth Controller - login', () => {
     await login(req, res);
     expect(res.status).toHaveBeenCalledWith(401);
   });
+
+  test('500 - error inesperado en login', async () => {
+    mockLoginUser.mockRejectedValue(new Error('Error de conexión'));
+    const req = { body: { username: 'juan', password: '123' } };
+    const res = mockRes();
+    await login(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
 });
