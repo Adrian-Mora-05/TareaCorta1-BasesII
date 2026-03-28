@@ -1,1 +1,0 @@
-# para hacer un SELECT a la BD y ver qué hay dentro y q lo mande a terminal

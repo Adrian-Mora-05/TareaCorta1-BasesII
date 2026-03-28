@@ -3,7 +3,13 @@ Tarea corta #1 de Bases de Datos 2
 
 # 🍽️ API de Gestión de Restaurantes
 
-Este proyecto consiste en una API REST para la gestión de restaurantes, menús, reservas y pedidos, utilizando autenticación y autorización mediante Keycloak.
+![Node.js](https://img.shields.io/badge/Node.js-20-green)
+![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![Keycloak](https://img.shields.io/badge/Auth-Keycloak-orange)
+![Status](https://img.shields.io/badge/status-active-success)
+
+Este proyecto es un API REST para la gestión de restaurantes, menús, reservas y pedidos, con autenticación y autorización mediante Keycloak.
 
 ---
 
@@ -17,281 +23,11 @@ La API permite:
 * Creación de reservas
 * Realización de pedidos
 
-El sistema está diseñado siguiendo buenas prácticas de arquitectura moderna, separando los servicios de autenticación y base de datos.
-
 ---
 
 ## 🏗️ Arquitectura del Sistema
-
-El sistema está compuesto por los siguientes servicios:
-
-* **API Backend (Node.js + Express)**
-* **Base de datos de la aplicación (PostgreSQL)**
-* **Servidor de autenticación (Keycloak)**
-* **Base de datos de Keycloak (PostgreSQL independiente)**
-
 ```
-Cliente (Postman)
-        ↓
-     API (Node.js)
-        ↓
-  PostgreSQL (restaurantdb)
-
-Keycloak (Auth Server)
-        ↓
-PostgreSQL (keycloak)
-```
-
----
-
-## 🚀 Tecnologías utilizadas
-
-* Node.js
-* Express
-* PostgreSQL
-* Keycloak
-* Docker & Docker Compose
-* JWT (JSON Web Tokens)
-
----
-
-## ⚙️ Configuración del entorno
-
-### 1. Clonar el repositorio
-
-```bash
-git clone <URL_DEL_REPO>
-cd <NOMBRE_DEL_PROYECTO>
-```
-
----
-
-### 2. Variables de entorno
-
-Crear un archivo `.env` en la raíz con el siguiente contenido:
-
-```env
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=admin
-
-RESTAURANT_DB=restaurantdb
-KEYCLOAK_DB=keycloak
-
-KEYCLOAK_ADMIN=admin
-KEYCLOAK_ADMIN_PASSWORD=admin
-
-KEYCLOAK_URL=http://keycloak:8080
-
-DB_HOST=db_api
-DB_PORT=5432
-DB_USER=admin
-DB_PASSWORD=admin
-DB_NAME=restaurantdb
-```
-
----
-
-### 3. Levantar el proyecto
-
-```bash
-docker compose up --build
-```
-
----
-
-## 🌐 Servicios disponibles
-
-* API: http://localhost:3000
-* Keycloak: http://localhost:8080
-
----
-
-## 🔐 Autenticación
-
-La autenticación se maneja mediante Keycloak usando JWT.
-
-### Usuarios de prueba
-
-| Usuario  | Contraseña | Rol     |
-| -------- | ---------- | ------- |
-| admin1   | admin123   | admin   |
-| cliente1 | cliente123 | cliente |
-
----
-
-### Obtener token
-
-**POST**
-
-```
-http://localhost:8080/realms/restaurant/protocol/openid-connect/token
-```
-
-Body (x-www-form-urlencoded):
-
-```
-client_id=api-restaurant
-client_secret=api-restaurant-secret
-grant_type=password
-username=admin1
-password=admin123
-```
-
----
-
-## 📡 Endpoints de la API
-
-### 🔐 Auth
-
-* `POST /auth/register` → Registro de usuario *(opcional si se usa Keycloak directamente)*
-* `POST /auth/login` → Obtención de JWT
-
----
-
-### 👤 Usuarios
-
-* `GET /users/me` → Obtener usuario autenticado
-* `PUT /users/:id` → Actualizar usuario
-* `DELETE /users/:id` → Eliminar usuario
-
----
-
-### 🍽️ Restaurantes
-
-* `POST /restaurants` → Crear restaurante *(admin)*
-* `GET /restaurants` → Listar restaurantes
-
----
-
-### 📋 Menús
-
-* `POST /menus` → Crear menú *(admin)*
-* `GET /menus/:id` → Obtener menú
-* `PUT /menus/:id` → Actualizar menú *(admin)*
-* `DELETE /menus/:id` → Eliminar menú *(admin)*
-
----
-
-### 📅 Reservas
-
-* `POST /reservations` → Crear reserva
-* `DELETE /reservations/:id` → Cancelar reserva
-
----
-
-### 🧾 Pedidos
-
-* `POST /orders` → Crear pedido
-* `GET /orders/:id` → Obtener pedido
-
----
-
-## 🧪 Pruebas
-
-Se recomienda usar **Postman** para probar la API.
-
-### Ejemplo: Crear restaurante
-
-**POST** `http://localhost:3000/restaurants`
-
-Headers:
-
-```
-Authorization: Bearer <TOKEN>
-Content-Type: application/json
-```
-
-Body:
-
-```json
-{
-  "nombre": "Pizza Planet",
-  "direccion": "San José",
-  "telefono": "2222-2222"
-}
-```
-
----
-
-## 🗄️ Base de datos
-
-* La base de datos de la aplicación (`restaurantdb`) contiene:
-
-  * Esquema `restaurant`
-  * Tablas: restaurantes, menús, etc.
-  * Funciones almacenadas (PL/pgSQL)
-
-* La base de datos de Keycloak es independiente y gestionada automáticamente.
-
----
-
-## 🧱 Buenas prácticas implementadas
-
-* Separación de responsabilidades (API, Auth, DB)
-* Uso de contenedores independientes
-* Autenticación con JWT
-* Uso de roles (`admin`, `cliente`)
-* Uso de funciones almacenadas en PostgreSQL
-* Arquitectura escalable
-
----
-
-## ⚠️ Notas importantes
-
-* El sistema usa Keycloak en modo desarrollo
-* No está optimizado para producción
-* Los datos se reinician al usar `docker compose down -v`
-
----
-
-## 👨‍💻 Autor
-
-Proyecto desarrollado como parte del curso de Bases de Datos II.
-Tamara Robles (2024099342)
-Adrián Mora Rivera (2024800149)
----
-
-
-
-
-
------------
-
-
-----------
-
-
-
-# 🍽️ Restaurant Management API
-
-![Node.js](https://img.shields.io/badge/Node.js-20-green)
-![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
-![Keycloak](https://img.shields.io/badge/Auth-Keycloak-orange)
-![Status](https://img.shields.io/badge/status-active-success)
-
----
-
-## 📌 Descripción
-
-API REST para la gestión de restaurantes que permite administrar:
-
-* Restaurantes
-* Menús
-* Reservas
-* Pedidos
-* Usuarios autenticados
-
-El sistema implementa autenticación y autorización basada en **JWT** mediante Keycloak, siguiendo una arquitectura desacoplada y escalable.
-
----
-
-## 🏗️ Arquitectura
-
-El sistema está compuesto por múltiples servicios independientes:
-
-```
-        Cliente (Postman)
+        Cliente (Postman / Swagger)
                ↓
          ┌────────────┐
          │    API     │
@@ -302,7 +38,6 @@ El sistema está compuesto por múltiples servicios independientes:
      │ PostgreSQL (API) │
      │  restaurantdb    │
      └──────────────────┘
-
 
      ┌──────────────────┐
      │    Keycloak      │
@@ -324,42 +59,46 @@ El sistema está compuesto por múltiples servicios independientes:
 * **Keycloak**
 * **Docker & Docker Compose**
 * **JWT (JSON Web Tokens)**
+* **Swagger UI + swagger-jsdoc**
+* **Jest + Supertest** — Pruebas unitarias y de integración
 
 ---
 
-## ⚙️ Configuración del proyecto
-
-### 🔧 Requisitos
+## ⚙️ Requisitos previos
 
 * Docker
 * Docker Compose
 
 ---
 
-### 📥 Instalación
+## 📥 Instalación y ejecución
 
+### 1. Clonar el repositorio
 ```bash
-git clone <URL_DEL_REPOSITORIO>
+git clone <URL_DEL_REPO>
 cd <NOMBRE_DEL_PROYECTO>
 ```
 
----
-
-### 🔑 Variables de entorno
-
-Crear archivo `.env`:
-
+### 2. Crear el archivo `.env` en la raíz
 ```env
 POSTGRES_USER=admin
 POSTGRES_PASSWORD=admin
+POSTGRES_DB=postgres
 
-RESTAURANT_DB=restaurantdb
+REALM=restaurant
+
 KEYCLOAK_DB=keycloak
+RESTAURANT_DB=restaurantdb
 
 KEYCLOAK_ADMIN=admin
 KEYCLOAK_ADMIN_PASSWORD=admin
 
 KEYCLOAK_URL=http://keycloak:8080
+
+KEYCLOAK_CLIENT_ID=api-restaurant
+KEYCLOAK_CLIENT_SECRET=api-restaurant-secret
+
+KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
 
 DB_HOST=db_api
 DB_PORT=5432
@@ -368,49 +107,50 @@ DB_PASSWORD=admin
 DB_NAME=restaurantdb
 ```
 
----
-
-### ▶️ Ejecución
-
+### 3. Levantar el proyecto
 ```bash
 docker compose up --build
 ```
 
+> ⚠️ La primera vez puede tardar 1-2 minutos mientras Keycloak inicializa e importa el realm.
+
+### 4. Para detener y limpiar datos
+```bash
+docker compose down -v
+```
+
+> ⚠️ El flag `-v` elimina los volúmenes. Los datos se reinician completamente.
+
 ---
 
-## 🌐 Servicios
+## 🌐 Servicios disponibles
 
-| Servicio | URL                   |
-| -------- | --------------------- |
-| API      | http://localhost:3000 |
-| Keycloak | http://localhost:8080 |
+| Servicio  | URL                            |
+| --------- | ------------------------------ |
+| API       | http://localhost:3000          |
+| Swagger   | http://localhost:3000/api-docs |
+| Keycloak  | http://localhost:8080          |
 
 ---
 
 ## 🔐 Autenticación
 
-El sistema utiliza **Keycloak** para manejar autenticación.
+El sistema usa **Keycloak** para autenticación con JWT.
 
-### 👤 Usuarios de prueba
+### Usuarios de prueba precargados
 
 | Usuario  | Contraseña | Rol     |
 | -------- | ---------- | ------- |
 | admin1   | admin123   | admin   |
 | cliente1 | cliente123 | cliente |
 
----
+> ⚠️ Estos usuarios existen en Keycloak pero no en la base de datos de la API. Para usarlos con todos los endpoints, primero regístralos via `POST /auth/register` o créalos directamente con `POST /auth/login` y luego insértalos manualmente en la BD.
 
-### 🔑 Obtener Token
-
-**POST**
-
+### Obtener token directamente desde Keycloak
 ```
-http://localhost:8080/realms/restaurant/protocol/openid-connect/token
-```
+POST http://localhost:8080/realms/restaurant/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
 
-Body:
-
-```
 client_id=api-restaurant
 client_secret=api-restaurant-secret
 grant_type=password
@@ -418,135 +158,179 @@ username=admin1
 password=admin123
 ```
 
----
-
-## 📡 Endpoints
-
-### 🍽️ Restaurantes
-
-| Método | Endpoint     | Descripción         | Rol     |
-| ------ | ------------ | ------------------- | ------- |
-| POST   | /restaurants | Crear restaurante   | admin   |
-| GET    | /restaurants | Listar restaurantes | público |
-
----
-
-### 📋 Menús
-
-| Método | Endpoint   | Descripción     | Rol         |
-| ------ | ---------- | --------------- | ----------- |
-| POST   | /menus     | Crear menú      | admin       |
-| GET    | /menus/:id | Obtener menú    | autenticado |
-| PUT    | /menus/:id | Actualizar menú | admin       |
-| DELETE | /menus/:id | Eliminar menú   | admin       |
-
----
-
-### 📅 Reservas
-
-| Método | Endpoint          | Descripción      |
-| ------ | ----------------- | ---------------- |
-| POST   | /reservations     | Crear reserva    |
-| DELETE | /reservations/:id | Cancelar reserva |
-
----
-
-### 🧾 Pedidos
-
-| Método | Endpoint    | Descripción    |
-| ------ | ----------- | -------------- |
-| POST   | /orders     | Crear pedido   |
-| GET    | /orders/:id | Obtener pedido |
-
----
-
-### 👤 Usuarios
-
-| Método | Endpoint   |
-| ------ | ---------- |
-| GET    | /users/me  |
-| PUT    | /users/:id |
-| DELETE | /users/:id |
-
----
-
-## 🧪 Pruebas con Postman
-
-### Crear restaurante
-
+### Obtener token desde la API
 ```
-POST http://localhost:3000/restaurants
-```
-
-Headers:
-
-```
-Authorization: Bearer <TOKEN>
+POST http://localhost:3000/auth/login
 Content-Type: application/json
-```
 
-Body:
-
-```json
 {
-  "nombre": "Pizza Planet",
-  "direccion": "San José",
-  "telefono": "2222-2222"
+  "username": "admin1",
+  "password": "admin123"
 }
 ```
 
 ---
 
-## 🗄️ Base de Datos
+## 📡 Endpoints de la API
 
-### 📦 API Database
+### 🔐 Auth
 
-* Base: `restaurantdb`
-* Esquema: `restaurant`
-* Contiene:
+| Método | Endpoint        | Descripción              | Auth requerida |
+| ------ | --------------- | ------------------------ | -------------- |
+| POST   | /auth/register  | Registro de usuario      | No (opcional)  |
+| POST   | /auth/login     | Obtención de JWT         | No             |
 
-  * Tablas
-  * Funciones PL/pgSQL
+> Para crear un usuario con rol `admin`, se requiere un token de admin en el header.
 
-### 🔐 Keycloak Database
+### 👤 Usuarios
 
-* Base: `keycloak`
-* Gestionada automáticamente por Keycloak
+| Método | Endpoint    | Descripción                     | Rol     |
+| ------ | ----------- | ------------------------------- | ------- |
+| GET    | /users/me   | Obtener usuario autenticado     | Cualquiera |
+| PUT    | /users/:id  | Actualizar usuario              | admin   |
+| DELETE | /users/:id  | Eliminar usuario                | admin   |
+
+### 🍽️ Restaurantes
+
+| Método | Endpoint      | Descripción         | Rol         |
+| ------ | ------------- | ------------------- | ----------- |
+| POST   | /restaurants  | Crear restaurante   | admin       |
+| GET    | /restaurants  | Listar restaurantes | autenticado |
+
+### 📋 Menús
+
+| Método | Endpoint    | Descripción     | Rol         |
+| ------ | ----------- | --------------- | ----------- |
+| POST   | /menus      | Crear menú      | admin       |
+| GET    | /menus/:id  | Obtener menú    | autenticado |
+| PUT    | /menus/:id  | Actualizar menú | admin       |
+| DELETE | /menus/:id  | Eliminar menú   | admin       |
+
+### 📅 Reservas
+
+| Método | Endpoint           | Descripción      | Rol         |
+| ------ | ------------------ | ---------------- | ----------- |
+| POST   | /reservations      | Crear reserva    | autenticado |
+| DELETE | /reservations/:id  | Cancelar reserva | autenticado |
+
+### 🧾 Pedidos
+
+| Método | Endpoint     | Descripción    | Rol         |
+| ------ | ------------ | -------------- | ----------- |
+| POST   | /orders      | Crear pedido   | autenticado |
+| GET    | /orders/:id  | Obtener pedido | autenticado |
+
+---
+
+## 📖 Documentación interactiva (Swagger)
+
+Una vez levantado el proyecto, accedé a:
+```
+http://localhost:3000/api-docs
+```
+
+### Cómo autenticarse en Swagger
+
+1. Hacé login en `POST /auth/login`
+2. Copiá el `access_token` de la respuesta
+3. Hacé click en **Authorize 🔒** (arriba a la derecha)
+4. Pegá el token con el formato: `Bearer eyJhbGci...`
+5. Hacé click en **Authorize** y luego **Close**
+6. Todos los endpoints protegidos usarán ese token automáticamente
+
+---
+
+## 🧪 Pruebas
+
+El proyecto incluye pruebas unitarias y de integración con cobertura mínima del 90%.
+
+### Tipos de prueba
+
+**Pruebas unitarias** — prueban cada controller de forma aislada, mockeando todos los servicios externos (Keycloak, base de datos). No requieren ningún servicio corriendo.
+
+**Pruebas de integración** — prueban el flujo completo de cada endpoint contra la base de datos real. Mockean únicamente Keycloak. Requieren que la base de datos esté corriendo.
+
+### Ejecutar las pruebas
+
+Desde la carpeta `api/`:
+```bash
+# Todas las pruebas con reporte de cobertura
+cd api
+npm test
+
+# Solo pruebas unitarias
+npm run test:unit
+
+# Solo pruebas de integración
+npm run test:integration
+```
+
+> ⚠️ Para las pruebas de integración, la base de datos debe estar corriendo:
+> ```bash
+> docker compose up db_api
+> ```
+
+### Cobertura actual
+
+| Tipo         | Cobertura |
+| ------------ | --------- |
+| Statements   | ≥ 90%     |
+| Branches     | ≥ 90%     |
+| Functions    | ≥ 90%     |
+| Lines        | ≥ 90%     |
+
+El reporte detallado de cobertura se genera en la carpeta `api/coverage/` después de correr los tests. Podés abrirlo en el navegador:
+```
+api/coverage/lcov-report/index.html
+```
+
+---
+
+## 🗄️ Base de datos
+
+* **`restaurantdb`** — base de datos de la aplicación
+  * Esquema: `restaurant`
+  * Tablas: usuario, restaurante, menu, reservacion, pedido, plato, mesa, entre otras
+  * Funciones almacenadas en PL/pgSQL para todas las operaciones principales
+
+* **`keycloak`** — base de datos de autenticación, gestionada automáticamente por Keycloak
 
 ---
 
 ## 🧱 Buenas prácticas implementadas
 
-* Separación de servicios (API / Auth / DB)
-* Bases de datos independientes
-* Uso de Docker
-* Autenticación con JWT
-* Control de roles (admin / cliente)
-* Uso de funciones almacenadas
-* Arquitectura escalable
+* Separación de responsabilidades (API / Auth / DB)
+* Bases de datos independientes por servicio
+* Autenticación con JWT via Keycloak
+* Control de acceso por roles (`admin` / `cliente`)
+* Funciones almacenadas en PostgreSQL
+* Documentación interactiva con Swagger
+* Pruebas unitarias y de integración con 90%+ de cobertura
+* Arquitectura contenedorizada con Docker Compose
 
 ---
 
-## ⚠️ Problemas conocidos
+## ⚠️ Notas importantes
 
-* Tokens pueden invalidarse al reiniciar contenedores
-* Keycloak corre en modo desarrollo
-* No hay frontend (API probada con Postman)
+* Keycloak corre en modo desarrollo (`start-dev`), no apto para producción
+* Los tokens pueden invalidarse al reiniciar los contenedores — en ese caso volvé a hacer login
+* Al usar `docker compose down -v` se pierden todos los datos
 
 ---
 
 ## 📈 Posibles mejoras
 
 * Implementar frontend (React / Angular)
-* Paginación en endpoints
+* Paginación en endpoints de listado
 * Logs estructurados
-* Tests automatizados
 * Deploy en la nube
+* Modo producción de Keycloak con HTTPS
 
 ---
 
-## 👨‍💻 Autor
+## 👨‍💻 Autores
 
 Proyecto desarrollado para el curso de **Bases de Datos II**.
 
----
+* Adrián Mora Rivera — 2024800149
+* Tamara Robles Camacho — 2024099342
