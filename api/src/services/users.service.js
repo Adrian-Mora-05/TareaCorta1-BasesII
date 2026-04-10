@@ -2,7 +2,7 @@
 import { query } from '../config/db.js';
 
 // Obtiene los detalles de un usuario por su ID
-// Llama a la función SQL get_detalles_user que creamos en 03_funciones.sql
+// Llama a la función SQL get_detalles_user  de funciones.sql
 export async function getUserById(keycloakId) {
   const result = await query(
     `SELECT u.id, u.nombre, u.correo, r.nombre AS rol
