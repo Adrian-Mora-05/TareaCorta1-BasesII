@@ -1,72 +1,3 @@
-# services:
- # db:
- #   image: postgres:16
- #   container_name: db
- #   environment:
- #     POSTGRES_USER: ${POSTGRES_USER}
- #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
- #     POSTGRES_DB: ${POSTGRES_DB}
- #   ports:
- #     - "5432:5432"
- #   volumes:
- #     - pgdata:/var/lib/postgresql/data
- #     - ./db/init:/docker-entrypoint-initdb.d
- #   healthcheck:
- #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
- #     interval: 10s
- #     timeout: 5s
- #     retries: 10
-
- # keycloak:
-   # image: quay.io/keycloak/keycloak:24.0
-   # container_name: keycloak
-   # depends_on:
-    #  db:
-    #    condition: service_healthy
-   # environment:
-     # KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-     # KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-     # KC_DB: postgres
-     # KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB}
-     # KC_DB_USERNAME: ${POSTGRES_USER}
-    #  KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-   #   KC_IMPORT: /opt/keycloak/data/import/realm-export.json
-  #  volumes:
-   # - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
-   # command: ["start-dev", "--import-realm"]
-   # ports:
-  #    - "8080:8080"
-
- # api:
- #   build: ./api
- #   container_name: api
- #   depends_on:
- #     - db
- #     - keycloak
- #   environment:
- #     DB_HOST: db
- #     DB_PORT: 5432
- #     DB_USER: ${POSTGRES_USER}
- #     DB_PASSWORD: ${POSTGRES_PASSWORD}
- #     DB_NAME: ${RESTAURANT_DB}
- #     KEYCLOAK_URL: http://keycloak:8080
- #   ports:
- #     - "3000:3000"
-
-# volumes:
- # pgdata:
-
-
-
-  
-  # Para iniciar los servicios, ejecuta:
-    
-   # docker-compose up -d
-    
-  # Esto levantará la base de datos PostgreSQL, el servidor Keycloak y la API Node.js.
-   # Asegúrate de que las variables de entorno en el archivo .env estén configuradas correctamente antes de iniciar los servicios.
-   
-
 services:
 
   db_api:
@@ -118,6 +49,10 @@ services:
       KC_DB_URL: jdbc:postgresql://db_keycloak:5432/${KEYCLOAK_DB}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: localhost          
+      KC_HOSTNAME_PORT: 8080          
+      KC_HOSTNAME_STRICT: false       
+      KC_HTTP_ENABLED: true           
 
       KC_IMPORT: /opt/keycloak/data/import/realm-export.json
     volumes:
@@ -139,8 +74,37 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${RESTAURANT_DB}
       KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: http://localhost:8080 
+      REALM: ${REALM}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}         
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET} 
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
     ports:
       - "3000:3000"
+  
+  api_test:
+    build: ./api
+    container_name: api_test
+    profiles: ["test"]          # solo corre si pedimos el profile "test"
+    depends_on:
+      db_api:
+        condition: service_healthy
+    environment:
+      DB_HOST: db_api
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${RESTAURANT_DB}
+      KEYCLOAK_URL: http://localhost:8080
+      REALM: ${REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    command: ["npm", "test"]
 
 volumes:
   pgdata_api:

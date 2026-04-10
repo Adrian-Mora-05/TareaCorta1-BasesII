@@ -14,6 +14,7 @@
       "publicClient": false,
       "secret": "api-restaurant-secret",
       "directAccessGrantsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
       "protocol": "openid-connect",
       "redirectUris": ["*"],
 

@@ -18,12 +18,19 @@ export async function getUserById(keycloakId) {
 // Actualiza el nombre y correo de un usuario por su ID
 // Llama a la función SQL actualizar_user
 export async function updateUser(id, nombre, correo) {
-  await query(
+  const result =await query(
     `UPDATE restaurant.usuario
      SET nombre = $2, correo = $3
-     WHERE id = $1`,
+     WHERE id = $1
+     RETURNING id`, // RETURNING id nos permite verificar que la actualización se realizó correctamente
     [id, nombre, correo]
   );
+
+  // Si no actualizó ninguna fila, el usuario no existe
+  if (result.rowCount === 0) {
+    throw new Error('Usuario no encontrado');
+  }
+
   // Retorna un mensaje de confirmación
   return { message: 'Usuario actualizado correctamente' };
 }
@@ -31,10 +38,15 @@ export async function updateUser(id, nombre, correo) {
 // Elimina un usuario por su ID
 // Llama a la función SQL borrar_user
 export async function deleteUser(id) {
-  await query(
+  const result = await query(
     `DELETE FROM restaurant.usuario
-     WHERE id = $1`,
+     WHERE id = $1
+     RETURNING id`, // RETURNING id nos permite verificar que la eliminación se realizó correctamente
     [id]
   );
+  // Si no eliminó ninguna fila, el usuario no existe
+  if (result.rowCount === 0) {
+    throw new Error('Usuario no encontrado');
+  }
   return { message: 'Usuario eliminado correctamente' };
 }
