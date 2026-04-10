@@ -78,9 +78,7 @@ function mockReqRes(body = {}, params = {}, auth = {}) {
   return { req, res };
 }
 
-// ============================================================
 // PRUEBAS DEL AUTH CONTROLLER
-// ============================================================
 describe('auth.controller', () => {
 
   // Limpia el historial de llamadas antes de cada prueba
@@ -165,9 +163,8 @@ describe('auth.controller', () => {
 
 });
 
-// ============================================================
+
 // PRUEBAS DEL USERS CONTROLLER
-// ============================================================
 describe('users.controller', () => {
 
   beforeEach(() => jest.clearAllMocks());
@@ -240,9 +237,7 @@ describe('users.controller', () => {
 
 });
 
-// ============================================================
 // PRUEBAS DEL RESTAURANTS CONTROLLER
-// ============================================================
 describe('restaurants.controller', () => {
 
   beforeEach(() => jest.clearAllMocks());
@@ -286,9 +281,8 @@ describe('restaurants.controller', () => {
 
 });
 
-// ============================================================
+
 // PRUEBAS DEL MENUS CONTROLLER
-// ============================================================
 describe('menus.controller', () => {
 
   beforeEach(() => jest.clearAllMocks());
