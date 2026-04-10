@@ -1,3 +1,7 @@
+# HAY QUE AGREGAR LOS SERVICIOS DE MONGO, Y CONECTAR A MONGO EN EL APP.JS
+# 1 primario y 1 secundario, para tener replicación y alta disponibilidad
+# poner 3 replicas y agregar volúmenes
+
 services:
 
   db_api:

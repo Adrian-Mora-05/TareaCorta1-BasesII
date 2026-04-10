@@ -10,6 +10,7 @@ import restaurantsRoutes from './routes/restaurants.routes.js';
 import menusRoutes from './routes/menus.routes.js';
 import reservationsRoutes from './routes/reservations.routes.js';
 import ordersRoutes from './routes/orders.routes.js';
+// PONER ACÁ QUE SE CONECTE A MONGO
 
 // Crea la aplicación Express
 const app = express();
