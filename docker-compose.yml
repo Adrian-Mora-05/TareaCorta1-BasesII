@@ -110,6 +110,57 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     command: ["npm", "test"]
 
+
+  mongo1:
+      image: mongo:7
+      container_name: mongo1
+      command: mongod --replSet rs0 --bind_ip_all
+      ports:
+        - "27017:27017"
+      volumes:
+        - mongo1_data:/data/db
+
+    mongo2:
+      image: mongo:7
+      container_name: mongo2
+      command: mongod --replSet rs0 --bind_ip_all
+      ports:
+        - "27018:27017"
+      volumes:
+        - mongo2_data:/data/db
+
+    mongo3:
+      image: mongo:7
+      container_name: mongo3
+      command: mongod --replSet rs0 --bind_ip_all
+      ports:
+        - "27019:27017"
+      volumes:
+        - mongo3_data:/data/db
+
+    mongo-init:
+      image: mongo:7
+      container_name: mongo-init
+      depends_on:
+        - mongo1
+        - mongo2
+        - mongo3
+      entrypoint: >
+        bash -c "sleep 10 && mongosh --host mongo1 --eval '
+          rs.initiate({
+            _id: \"rs0\",
+            members: [
+              { _id: 0, host: \"mongo1:27017\" },
+              { _id: 1, host: \"mongo2:27017\" },
+              { _id: 2, host: \"mongo3:27017\" }
+            ]
+          })'
+        "
+      restart: on-failure
+
 volumes:
   pgdata_api:
   pgdata_keycloak:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
