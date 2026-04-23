@@ -1,22 +1,25 @@
-import Restaurant from '../../models/restaurant.model.js';
+import { getMongo } from '../../config/mongo.js';
 
-// DAO de restaurantes para MongoDB
-// Hace lo mismo que el de PostgreSQL pero con Mongoose
 export class RestaurantDAOMongo {
 
-  // Inserta un nuevo documento en la colección restaurants
-  async create(nombre, direccion, telefono) {
-    const restaurant = new Restaurant({ nombre, direccion, telefono });
-    const saved = await restaurant.save();
-    return { id: saved._id };
+  get collection() {
+    return getMongo().collection('restaurantes');
   }
 
-  // Obtiene todos los documentos de la colección
+  async create(nombre, direccion, telefono) {
+    const result = await this.collection.insertOne({
+      nombre,
+      direccion,
+      telefono,
+      createdAt: new Date()
+    });
+    return { id: result.insertedId.toString() };
+  }
+
   async findAll() {
-    const restaurants = await Restaurant.find();
-    // Transforma el formato MongoDB al mismo formato que PostgreSQL
-    return restaurants.map(r => ({
-      id: r._id,
+    const docs = await this.collection.find().toArray();
+    return docs.map(r => ({
+      id: r._id.toString(),
       nombre: r.nombre,
       direccion: r.direccion,
       telefono: r.telefono

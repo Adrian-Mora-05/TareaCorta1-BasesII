@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { query } from '../config/db.js';
+import { query } from '../config/postgresdb.js';
 
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://keycloak:8080';
 const REALM = process.env.REALM || 'restaurant';

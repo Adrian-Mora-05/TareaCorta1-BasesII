@@ -1,4 +1,4 @@
-import { query } from '../../config/db.js';
+import { query } from '../../config/postgresdb.js';
 
 // DAO de restaurantes para PostgreSQL
 // Contiene todas las operaciones SQL de restaurantes
@@ -21,3 +21,5 @@ export class RestaurantDAOPostgres {
     return result.rows;
   }
 }
+
+

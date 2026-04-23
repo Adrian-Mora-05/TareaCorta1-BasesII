@@ -1,4 +1,4 @@
-import { query } from '../../config/db.js';
+import { query } from '../../config/postgresdb.js';
 
 // DAO de usuarios para PostgreSQL
 export class UserDAOPostgres {

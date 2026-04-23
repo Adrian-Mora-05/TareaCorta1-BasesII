@@ -1,29 +1,35 @@
-import User from '../../models/user.model.js';
+import { getMongo } from '../../config/mongo.js';
+import { ObjectId } from 'mongodb';
 
-// DAO de usuarios para MongoDB
 export class UserDAOMongo {
 
-  // Busca un usuario por su ID de Keycloak
+  get collection() {
+    return getMongo().collection('usuarios');
+  }
+
   async findByExternalId(keycloakId) {
-    const user = await User.findOne({ id_external_auth: keycloakId });
-    if (!user) return undefined;
+    const doc = await this.collection.findOne({ id_external_auth: keycloakId });
+    if (!doc) return undefined;
     return {
-      id: user._id,
-      nombre: user.nombre,
-      correo: user.correo,
-      rol: user.rol
+      id: doc._id.toString(),
+      nombre: doc.nombre,
+      correo: doc.correo,
+      rol: doc.rol
     };
   }
 
-  // Actualiza nombre y correo de un usuario
   async update(id, nombre, correo) {
-    await User.findByIdAndUpdate(id, { nombre, correo });
+    const result = await this.collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { nombre, correo } }
+    );
+    if (result.matchedCount === 0) throw new Error('Usuario no encontrado');
     return { message: 'Usuario actualizado correctamente' };
   }
 
-  // Elimina un usuario por su ID
   async delete(id) {
-    await User.findByIdAndDelete(id);
+    const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 0) throw new Error('Usuario no encontrado');
     return { message: 'Usuario eliminado correctamente' };
   }
 }

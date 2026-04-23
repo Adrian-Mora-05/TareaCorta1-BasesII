@@ -120,7 +120,7 @@ services:
       volumes:
         - mongo1_data:/data/db
 
-    mongo2:
+  mongo2:
       image: mongo:7
       container_name: mongo2
       command: mongod --replSet rs0 --bind_ip_all
@@ -129,7 +129,7 @@ services:
       volumes:
         - mongo2_data:/data/db
 
-    mongo3:
+  mongo3:
       image: mongo:7
       container_name: mongo3
       command: mongod --replSet rs0 --bind_ip_all
@@ -138,7 +138,7 @@ services:
       volumes:
         - mongo3_data:/data/db
 
-    mongo-init:
+  mongo-init:
       image: mongo:7
       container_name: mongo-init
       depends_on:
