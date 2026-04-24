@@ -1,5 +1,5 @@
 import { ReservationDAO } from '../interfaces/reservationDAO.js';
-import { query } from '../../config/db.js';
+import { query } from '../../config/postgresdb.js';
 
 export class ReservationPostgresDAO extends ReservationDAO {
 
