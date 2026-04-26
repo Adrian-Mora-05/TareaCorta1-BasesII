@@ -1,5 +1,8 @@
-import { getRestaurantDAO } from '../dao/dao.factory.js';
+
 import { getCache, setCache, deletePattern, TTL } from '../config/cache.js';
+
+import { getRestaurantDAO } from '../dao/DAOFactory.js';
+
 
 // Registra un nuevo restaurante en la base de datos
 // Solo los administradores pueden llamar esta función (eso se controla en la ruta)

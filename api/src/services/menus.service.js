@@ -1,5 +1,7 @@
-import { getMenuDAO } from '../dao/dao.factory.js';
+
+import { getMenuDAO } from '../dao/DAOFactory.js';
 import { getCache, setCache, deletePattern, TTL } from '../config/cache.js';
+
 
 export async function crearMenu(nombre, idRestaurante) {
   const dao = getMenuDAO();
