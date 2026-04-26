@@ -1,4 +1,4 @@
-/* Para agregar soporte a un nuevo motor de base de datos:
+   /* Para agregar soporte a un nuevo motor de base de datos:
  *  1. Crear una carpeta nueva en /dao/<motor>/
  *  2. Crear un <Entidad>DAO que extienda BaseDAO.
  *  3. Registrarlo en DAOFactory.js con su clave de configuración.

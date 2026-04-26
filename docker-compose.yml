@@ -71,6 +71,10 @@ services:
     depends_on:
       - db_api
       - keycloak
+      - mongo1
+      - mongo2
+      - mongo3
+      - redis
     environment:
       DB_HOST: db_api
       DB_PORT: 5432
@@ -85,6 +89,7 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}         
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET} 
       KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      REDIS_URL: redis://redis:6379
     ports:
       - "3000:3000"
   
@@ -158,9 +163,33 @@ services:
         "
       restart: on-failure
 
+  # Servidor de Redis para caché
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    # El comando configura Redis con:
+    # maxmemory: máximo 256MB de RAM
+    # maxmemory-policy: cuando se llena, borra los datos menos usados recientemente
+    #allkeys-lru:  política de limpieza, LRU significa Least Recently Used (menos usado recientemente)=> limpieza por falta de memoria (Eviction)
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru 
+    volumes:
+      # Persiste los datos de Redis aunque el contenedor se reinicie
+      - redis_data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 volumes:
   pgdata_api:
   pgdata_keycloak:
   mongo1_data:
   mongo2_data:
   mongo3_data:
+  redis_data: 
