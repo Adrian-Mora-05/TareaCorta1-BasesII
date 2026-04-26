@@ -6,7 +6,7 @@ global.fetch = mockFetch;
 
 // Mock query
 const mockQuery = jest.fn();
-jest.unstable_mockModule('../../src/config/db.js', () => ({
+jest.unstable_mockModule('../../src/config/postgresdb.js', () => ({
   query: mockQuery
 }));
 
