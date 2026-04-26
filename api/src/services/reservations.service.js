@@ -1,4 +1,4 @@
-import { getReservationDAO } from '../dao/dao.factory.js';
+import { getReservationDAO } from '../dao/DAOFactory.js';
 
 export async function createReservation(keycloakId, id_restaurante, id_mesa, fecha, duracion, personas) {
   const dao = getReservationDAO();

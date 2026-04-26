@@ -1,4 +1,4 @@
-import { getMenuDAO } from '../dao/dao.factory.js';
+import { getMenuDAO } from '../dao/DAOFactory.js';
 
 export async function crearMenu(nombre, idRestaurante) {
   const dao = getMenuDAO();

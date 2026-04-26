@@ -1,4 +1,4 @@
-import { getOrderDAO } from '../dao/dao.factory.js';
+import { getOrderDAO } from '../dao/DAOFactory.js';
 
 export async function createOrder(keycloakId, id_restaurante, descripcion, tipo_pedido, platos) {
   const dao = getOrderDAO();

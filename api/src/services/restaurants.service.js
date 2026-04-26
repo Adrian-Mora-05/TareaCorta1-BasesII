@@ -1,4 +1,4 @@
-import { getRestaurantDAO } from '../dao/dao.factory.js';
+import { getRestaurantDAO } from '../dao/DAOFactory.js';
 
 
 // Registra un nuevo restaurante en la base de datos

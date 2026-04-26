@@ -1,5 +1,5 @@
 // Importa la función query para hacer consultas a PostgreSQL
-import { getUserDAO } from '../dao/dao.factory.js';
+import { getUserDAO } from '../dao/DAOFactory.js';
 
 // Obtiene los detalles de un usuario por su ID
 // Llama a la función SQL get_detalles_user  de funciones.sql
