@@ -1,72 +1,63 @@
-// Importa las funciones del servicio de usuarios
-import { getUserById, updateUser, deleteUser } from '../services/users.service.js';
+/**
+ * UserController — Maneja GET /users/me, PUT /users/:id, DELETE /users/:id.
+ *
+ * Cambios respecto al código anterior:
+ *  - Era módulo de funciones sueltas; ahora clase inyectable
+ *  - Recibe userService por constructor
+ *  - update pasa objeto { nombre, correo } al servicio (no posicional)
+ *  - Los mensajes de respuesta viven aquí, no en el DAO ni el servicio
+ */
+export class UserController {
+  /** @param {import('../services/users.service.js').UserService} userService */
+  constructor(userService) {
+    this.service = userService;
+  }
 
-// Controlador para obtener el perfil del usuario autenticado
-// Maneja la petición GET /users/me
-export async function getMe(req, res) {
-  try {
-    // req.auth lo pone el middleware checkJwt después de verificar el token
-    // sub es el ID del usuario en Keycloak
-    const keycloakId = req.auth.sub;
+  getMe = async (req, res) => {
+    try {
+      const keycloakId = req.auth.sub;
+      const user = await this.service.getMe(keycloakId);
 
-    // Busca el usuario en la base de datos usando su ID de Keycloak
-    const result = await getUserById(keycloakId);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
 
-    // Si no existe el usuario en la base de datos responde con 404
-    if (!result) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      res.status(200).json(user);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
+  };
 
-    // Responde con los datos del usuario
-    res.status(200).json(result);
+  update = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { nombre, correo } = req.body;
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
+      if (!nombre && !correo) {
+        return res.status(400).json({ error: 'Se requiere al menos nombre o correo' });
+      }
 
-// Controlador para actualizar los datos de un usuario
-// Maneja la petición PUT /users/:id
-export async function update(req, res) {
-  try {
-    // El :id viene de la URL, por ejemplo /users/5
-    const { id } = req.params;
+      const updated = await this.service.update(id, { nombre, correo });
 
-    // Los nuevos datos vienen del body
-    const { nombre, correo } = req.body;
+      if (!updated) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
 
-    // Verifica que al menos uno de los campos esté presente
-    if (!nombre || !correo) {
-      return res.status(400).json({ error: 'nombre y correo son obligatorios' });
+      res.status(200).json({ message: 'Usuario actualizado correctamente', data: updated });
+    } catch (error) {
+      const status = error.message === 'Usuario no encontrado' ? 404 : 500;
+      res.status(status).json({ error: error.message });
     }
+  };
 
-    // Llama al servicio para actualizar el usuario
-    const result = await updateUser(id, nombre, correo);
-
-    // Responde con mensaje de confirmación
-    res.status(200).json(result);
-
-  } catch (error) {
-    const status = error.message === 'Usuario no encontrado' ? 404 : 500;
-    res.status(status).json({ error: error.message });
-  }
-}
-
-// Controlador para eliminar un usuario
-// Maneja la petición DELETE /users/:id
-export async function remove(req, res) {
-  try {
-    // El :id viene de la URL
-    const { id } = req.params;
-
-    // Llama al servicio para eliminar el usuario
-    const result = await deleteUser(id);
-
-    // Responde con mensaje de confirmación
-    res.status(200).json(result);
-
-  } catch (error) {
-    const status = error.message === 'Usuario no encontrado' ? 404 : 500;
-    res.status(status).json({ error: error.message });
-  }
+  remove = async (req, res) => {
+    try {
+      const { id } = req.params;
+      await this.service.delete(id);
+      res.status(200).json({ message: 'Usuario eliminado correctamente' });
+    } catch (error) {
+      const status = error.message === 'Usuario no encontrado' ? 404 : 500;
+      res.status(status).json({ error: error.message });
+    }
+  };
 }

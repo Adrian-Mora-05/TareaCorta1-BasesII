@@ -3,20 +3,9 @@ import { PostgresBaseDAO } from '../PostgresBaseDAO.js';
 /**
  * UserDAOPostgres — DAO de usuarios para PostgreSQL.
  *
- * Aunque la autenticación se gestiona con Keycloak, existe una tabla
- * local `restaurant.usuario` que almacena datos complementarios
- * (nombre, correo, rol) y la referencia al ID de Keycloak.
- *
- * Este DAO maneja SOLO el acceso a esa tabla local.
- * La comunicación con Keycloak (register, login, tokens) es
- * responsabilidad de AuthService y UserService, no de este DAO.
- *
- * Cambios respecto al código anterior:
- *  - Extiende PostgresBaseDAO
- *  - Recibe pool por inyección
- *  - update recibe objeto data para cumplir el contrato de BaseDAO
- *  - delete retorna boolean (contrato de BaseDAO) en vez de mensaje
- *    (los mensajes de respuesta son responsabilidad del controlador)
+ * La autenticación va por Keycloak, pero existe una tabla local
+ * `restaurant.usuario` con datos complementarios y la referencia
+ * al ID de Keycloak.
  */
 export class UserDAOPostgres extends PostgresBaseDAO {
   constructor(pool) {
@@ -24,8 +13,32 @@ export class UserDAOPostgres extends PostgresBaseDAO {
   }
 
   /**
+   * Crea el registro local del usuario después de que AuthService
+   * lo haya creado en Keycloak. Resuelve el id_rol desde la BD.
+   *
+   * @param {{ keycloakId: string, nombre: string, correo: string, rol: string }} data
+   * @returns {Promise<Object>}
+   */
+  async createFromKeycloak({ keycloakId, nombre, correo, rol }) {
+    const rolResult = await this._query(
+      `SELECT id FROM restaurant.rol_usuario WHERE nombre = $1`,
+      [rol]
+    );
+    const id_rol = rolResult.rows[0]?.id;
+    if (!id_rol) throw new Error(`Rol '${rol}' no encontrado en base de datos`);
+
+    const result = await this._query(
+      `INSERT INTO restaurant.usuario (id_external_auth, nombre, correo, id_rol_usuario)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [keycloakId, nombre, correo, id_rol]
+    );
+    return result.rows[0];
+  }
+
+  /**
    * Busca el usuario local por su ID de Keycloak.
-   * Usado en GET /users/me para obtener el perfil completo con rol.
+   * Usado en GET /users/me.
    *
    * @param {string} keycloakId
    * @returns {Promise<Object|null>}
@@ -57,16 +70,11 @@ export class UserDAOPostgres extends PostgresBaseDAO {
   }
 
   /**
-   * Actualiza nombre y/o correo del usuario local.
-   * Sobreescribe el update genérico para asegurar que solo se
-   * actualicen los campos permitidos.
-   *
    * @param {number} id
    * @param {{ nombre?: string, correo?: string }} data
-   * @returns {Promise<Object|null>} — El usuario actualizado.
+   * @returns {Promise<Object|null>}
    */
   async update(id, { nombre, correo }) {
-    // Construimos dinámicamente solo los campos enviados
     const fields  = [];
     const values  = [];
     let   counter = 1;
@@ -88,9 +96,6 @@ export class UserDAOPostgres extends PostgresBaseDAO {
   }
 
   /**
-   * Elimina el usuario local. El servicio se encarga también de
-   * eliminarlo en Keycloak.
-   *
    * @param {number} id
    * @returns {Promise<boolean>}
    */

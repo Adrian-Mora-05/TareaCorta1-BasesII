@@ -1,68 +1,54 @@
 import { Router } from 'express';
-
-// Importa los controladores de restaurantes
-import { crear, listar } from '../controllers/restaurants.controller.js';
-
-// Importa los middlewares de autenticación y roles
-import { checkJwt } from '../middlewares/auth.js';
+import { checkJwt }    from '../middlewares/auth.js';
 import { requireRole } from '../middlewares/roles.js';
 
-const router = Router();
-
-// Ruta para registrar un nuevo restaurante
-// Solo los administradores pueden crear restaurantes
-// checkJwt verifica el token, requireRole verifica que sea admin
-// POST /restaurants
-router.post('/', checkJwt, requireRole('admin'), crear);
-
-// Ruta para listar todos los restaurantes disponibles
-// Cualquier usuario autenticado puede ver los restaurantes
-// checkJwt verifica que haya un token válido
-// GET /restaurants
-router.get('/', checkJwt, listar);
-
 /**
- * @swagger
- * /restaurants:
- *   post:
- *     summary: Registrar un restaurante (solo administradores)
- *     tags: [Restaurants]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [nombre]
- *             properties:
- *               nombre:
- *                 type: string
- *                 example: La Trattoria
- *               direccion:
- *                 type: string
- *                 example: Calle 5, San José
- *               telefono:
- *                 type: string
- *                 example: 2222-3333
- *     responses:
- *       201:
- *         description: Restaurante registrado correctamente
- *       400:
- *         description: Nombre obligatorio
- *       403:
- *         description: Permisos insuficientes
- *   get:
- *     summary: Listar restaurantes disponibles
- *     tags: [Restaurants]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de restaurantes
- *       401:
- *         description: Token inválido o ausente
+ * createRestaurantRouter — Crea y retorna el router de restaurantes.
+ *
+ * @param {import('../controllers/restaurants.controller.js').RestaurantController} controller
+ * @returns {Router}
  */
+export function createRestaurantRouter(controller) {
+  const router = Router();
 
-export default router;
+  /**
+   * @swagger
+   * /restaurants:
+   *   post:
+   *     summary: Registrar un restaurante (solo administradores)
+   *     tags: [Restaurants]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [nombre]
+   *             properties:
+   *               nombre:    { type: string, example: La Trattoria }
+   *               direccion: { type: string, example: Av. Central 123 }
+   *               telefono:  { type: string, example: +506 2222-3333 }
+   *     responses:
+   *       201: { description: Restaurante registrado }
+   *       400: { description: Nombre obligatorio }
+   *       403: { description: Sin permiso }
+   */
+  router.post('/', checkJwt, requireRole('admin'), controller.create);
+
+  /**
+   * @swagger
+   * /restaurants:
+   *   get:
+   *     summary: Listar restaurantes disponibles
+   *     tags: [Restaurants]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200: { description: Lista de restaurantes }
+   */
+  router.get('/', checkJwt, controller.findAll);
+
+  return router;
+}

@@ -1,95 +1,70 @@
-// Importa Router de Express para definir rutas de forma modular
 import { Router } from 'express';
-
-// Importa los controladores de autenticación
-import { register, login } from '../controllers/auth.controller.js';
-
-import { optionalJwt } from '../middlewares/auth.js'; // importa el opcional
-
-// Crea una instancia del router
-const router = Router();
-
-// Ruta pública para registrar un nuevo usuario
-// No necesita token porque el usuario aún no existe
-// POST /auth/register
-
+import { optionalJwt } from '../middlewares/auth.js';
 
 /**
- * @swagger
- * /auth/register:
- *   post:
- *     summary: Registro de un nuevo usuario
- *     tags: [Auth]
- *     security: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [username, email, password]
- *             properties:
- *               username:
- *                 type: string
- *                 example: juanito
- *               email:
- *                 type: string
- *                 example: juanito@test.com
- *               firstName:
- *                 type: string
- *                 example: Juan
- *               lastName:
- *                 type: string
- *                 example: Pérez
- *               password:
- *                 type: string
- *                 example: mipass123
- *               role:
- *                 type: string
- *                 enum: [cliente, admin]
- *                 example: cliente
- *     responses:
- *       201:
- *         description: Usuario registrado correctamente
- *       400:
- *         description: Campos obligatorios faltantes
- *       403:
- *         description: Solo admins pueden crear otros admins
+ * createAuthRouter — Crea y retorna el router de autenticación
+ * con el controlador inyectado.
+ *
+ * Cambios respecto al código anterior:
+ *  - Exporta función en vez de router fijo (permite inyección del controlador)
+ *  - Los handlers son métodos del controlador, no funciones importadas directamente
+ *
+ * @param {import('../controllers/auth.controller.js').AuthController} controller
+ * @returns {Router}
  */
-router.post('/register', optionalJwt, register);
+export function createAuthRouter(controller) {
+  const router = Router();
 
-// Ruta pública para hacer login y obtener el token JWT
-// No necesita token porque el usuario está intentando obtenerlo
-// POST /auth/login
+  /**
+   * @swagger
+   * /auth/register:
+   *   post:
+   *     summary: Registro de un nuevo usuario
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [username, email, password]
+   *             properties:
+   *               username:  { type: string, example: juanperez }
+   *               email:     { type: string, example: juan@example.com }
+   *               firstName: { type: string, example: Juan }
+   *               lastName:  { type: string, example: Pérez }
+   *               password:  { type: string, example: Secret123 }
+   *               role:      { type: string, enum: [cliente, admin], example: cliente }
+   *     responses:
+   *       201: { description: Usuario registrado correctamente }
+   *       400: { description: Campos obligatorios faltantes }
+   *       403: { description: Sin permiso para crear admins }
+   *       500: { description: Error interno }
+   */
+  router.post('/register', optionalJwt, controller.register);
 
-/**
- * @swagger
- * /auth/login:
- *   post:
- *     summary: Inicio de sesión y obtención de JWT
- *     tags: [Auth]
- *     security: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [username, password]
- *             properties:
- *               username:
- *                 type: string
- *                 example: admin2
- *               password:
- *                 type: string
- *                 example: admin456
- *     responses:
- *       200:
- *         description: Token JWT generado correctamente
- *       401:
- *         description: Credenciales inválidas
- */
-router.post('/login', login);
+  /**
+   * @swagger
+   * /auth/login:
+   *   post:
+   *     summary: Inicio de sesión y obtención de JWT
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [username, password]
+   *             properties:
+   *               username: { type: string, example: juanperez }
+   *               password: { type: string, example: Secret123 }
+   *     responses:
+   *       200: { description: Token JWT retornado }
+   *       400: { description: Campos obligatorios faltantes }
+   *       401: { description: Credenciales inválidas }
+   */
+  router.post('/login', controller.login);
 
-// Exporta el router para que app.js lo pueda usar
-export default router;
+  return router;
+}

@@ -3,18 +3,32 @@ import { MongoBaseDAO } from '../MongoBaseDAO.js';
 /**
  * UserDAOMongo — DAO de usuarios para MongoDB.
  *
- * Igual que en Postgres, existe una colección local `usuarios` que
- * almacena datos complementarios referenciados por el ID de Keycloak.
- *
- * Cambios respecto al código anterior:
- *  - Extiende MongoBaseDAO (recibe db por inyección)
- *  - update recibe objeto data — cumple contrato BaseDAO
- *  - update y delete retornan boolean/datos, no mensajes
- *    (los mensajes son responsabilidad del controlador)
+ * Colección local `usuarios` con datos complementarios y referencia
+ * al ID de Keycloak. En Mongo el rol se guarda como string directamente,
+ * sin tabla de roles separada.
  */
 export class UserDAOMongo extends MongoBaseDAO {
   constructor(db) {
     super(db, 'usuarios');
+  }
+
+  /**
+   * Crea el registro local del usuario después de que AuthService
+   * lo haya creado en Keycloak.
+   *
+   * En Mongo el rol se almacena como string (sin tabla de lookup).
+   *
+   * @param {{ keycloakId: string, nombre: string, correo: string, rol: string }} data
+   * @returns {Promise<Object>}
+   */
+  async createFromKeycloak({ keycloakId, nombre, correo, rol }) {
+    return super.create({
+      id_external_auth: keycloakId,
+      nombre,
+      correo,
+      rol,
+      createdAt: new Date(),
+    });
   }
 
   /**
@@ -30,8 +44,6 @@ export class UserDAOMongo extends MongoBaseDAO {
   }
 
   /**
-   * Actualiza solo los campos permitidos del perfil local.
-   *
    * @param {string} id
    * @param {{ nombre?: string, correo?: string }} data
    * @returns {Promise<Object|null>}
