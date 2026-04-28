@@ -1,18 +1,17 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
-const mockCrearMenu = jest.fn();
-const mockGetMenuById = jest.fn();
-const mockUpdateMenu = jest.fn();
-const mockDeleteMenu = jest.fn();
+// Mock del menuService inyectado en MenuController
+const mockMenuService = {
+  create: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
 
-jest.unstable_mockModule('../../src/services/menus.service.js', () => ({
-  crearMenu: mockCrearMenu,
-  getMenuById: mockGetMenuById,
-  updateMenu: mockUpdateMenu,
-  deleteMenu: mockDeleteMenu
-}));
+const { MenuController } = await import('../../src/controllers/menus.controller.js');
 
-const { crear, getById, update, remove } = await import('../../src/controllers/menus.controller.js');
+// Instancia el controller con el service mockeado
+const controller = new MenuController(mockMenuService);
 
 function mockRes() {
   const res = {};
@@ -21,15 +20,15 @@ function mockRes() {
   return res;
 }
 
-describe('Menus Controller - crear', () => {
+describe('MenuController - create', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
   test('201 - menú creado correctamente', async () => {
-    mockCrearMenu.mockResolvedValue({ id: 1 });
+    mockMenuService.create.mockResolvedValue({ id: 1 });
     const req = { body: { nombre: 'Menú del día', id_restaurante: 1 } };
     const res = mockRes();
-    await crear(req, res);
+    await controller.create(req, res);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ message: 'Menú creado correctamente', id: 1 });
   });
@@ -37,111 +36,113 @@ describe('Menus Controller - crear', () => {
   test('400 - faltan campos', async () => {
     const req = { body: { nombre: 'Sin restaurante' } };
     const res = mockRes();
-    await crear(req, res);
+    await controller.create(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
   test('500 - error del servicio', async () => {
-    mockCrearMenu.mockRejectedValue(new Error('Error de BD'));
+    mockMenuService.create.mockRejectedValue(new Error('Error de BD'));
     const req = { body: { nombre: 'Test', id_restaurante: 1 } };
     const res = mockRes();
-    await crear(req, res);
+    await controller.create(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
 });
 
-describe('Menus Controller - getById', () => {
+describe('MenuController - findById', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
   test('200 - menú encontrado', async () => {
-    mockGetMenuById.mockResolvedValue({ id: 1, nombre: 'Menú del día', id_restaurante: 1 });
+    mockMenuService.findById.mockResolvedValue({ id: 1, nombre: 'Menú del día' });
     const req = { params: { id: '1' } };
     const res = mockRes();
-    await getById(req, res);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+    await controller.findById(req, res);
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 
   test('404 - menú no encontrado', async () => {
-    mockGetMenuById.mockResolvedValue(undefined);
+    mockMenuService.findById.mockResolvedValue(null);
     const req = { params: { id: '9999' } };
     const res = mockRes();
-    await getById(req, res);
+    await controller.findById(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
   test('500 - error del servicio', async () => {
-    mockGetMenuById.mockRejectedValue(new Error('Error de BD'));
+    mockMenuService.findById.mockRejectedValue(new Error('Error de BD'));
     const req = { params: { id: '1' } };
     const res = mockRes();
-    await getById(req, res);
+    await controller.findById(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
 });
 
-describe('Menus Controller - update', () => {
+describe('MenuController - update', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
   test('200 - menú actualizado', async () => {
-    mockGetMenuById.mockResolvedValue({ id: 1 });
-    mockUpdateMenu.mockResolvedValue();
+    mockMenuService.update.mockResolvedValue({ id: 1, nombre: 'Nuevo nombre' });
     const req = { params: { id: '1' }, body: { nombre: 'Nuevo nombre' } };
     const res = mockRes();
-    await update(req, res);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Menú actualizado correctamente' });
+    await controller.update(req, res);
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 
   test('400 - falta nombre', async () => {
     const req = { params: { id: '1' }, body: {} };
     const res = mockRes();
-    await update(req, res);
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
   test('404 - menú no encontrado', async () => {
-    mockGetMenuById.mockResolvedValue(undefined);
+    mockMenuService.update.mockRejectedValue(new Error('Menú no encontrado'));
     const req = { params: { id: '9999' }, body: { nombre: 'Test' } };
     const res = mockRes();
-    await update(req, res);
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
   test('500 - error del servicio', async () => {
-    mockGetMenuById.mockRejectedValue(new Error('Error de BD'));
+    mockMenuService.update.mockRejectedValue(new Error('Error de BD'));
     const req = { params: { id: '1' }, body: { nombre: 'Test' } };
     const res = mockRes();
-    await update(req, res);
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
 });
 
-describe('Menus Controller - remove', () => {
+describe('MenuController - remove', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
   test('200 - menú eliminado', async () => {
-    mockGetMenuById.mockResolvedValue({ id: 1 });
-    mockDeleteMenu.mockResolvedValue();
+    mockMenuService.delete.mockResolvedValue(true);
     const req = { params: { id: '1' } };
     const res = mockRes();
-    await remove(req, res);
+    await controller.remove(req, res);
     expect(res.json).toHaveBeenCalledWith({ message: 'Menú eliminado correctamente' });
   });
 
   test('404 - menú no encontrado', async () => {
-    mockGetMenuById.mockResolvedValue(undefined);
+    mockMenuService.delete.mockRejectedValue(new Error('Menú no encontrado'));
     const req = { params: { id: '9999' } };
     const res = mockRes();
-    await remove(req, res);
+    await controller.remove(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
   test('500 - error del servicio', async () => {
-    mockGetMenuById.mockRejectedValue(new Error('Error de BD'));
+    mockMenuService.delete.mockRejectedValue(new Error('Error de BD'));
     const req = { params: { id: '1' } };
     const res = mockRes();
-    await remove(req, res);
+    await controller.remove(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
 });

@@ -1,16 +1,15 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
-const mockGetUserById = jest.fn();
-const mockUpdateUser = jest.fn();
-const mockDeleteUser = jest.fn();
+// Mock del userService inyectado en UserController
+const mockUserService = {
+  getMe: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
 
-jest.unstable_mockModule('../../src/services/users.service.js', () => ({
-  getUserById: mockGetUserById,
-  updateUser: mockUpdateUser,
-  deleteUser: mockDeleteUser
-}));
+const { UserController } = await import('../../src/controllers/users.controller.js');
 
-const { getMe, update, remove } = await import('../../src/controllers/users.controller.js');
+const controller = new UserController(mockUserService);
 
 function mockRes() {
   const res = {};
@@ -19,96 +18,99 @@ function mockRes() {
   return res;
 }
 
-describe('Users Controller - getMe', () => {
+describe('UserController - getMe', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
   test('200 - usuario encontrado', async () => {
-    mockGetUserById.mockResolvedValue({ id: 1, nombre: 'Juan', correo: 'j@j.com', rol: 'cliente' });
+    mockUserService.getMe.mockResolvedValue({ id: 1, nombre: 'Juan', correo: 'j@j.com', rol: 'cliente' });
     const req = { auth: { sub: 'uuid-123' } };
     const res = mockRes();
-    await getMe(req, res);
+    await controller.getMe(req, res);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
   test('404 - usuario no encontrado', async () => {
-    mockGetUserById.mockResolvedValue(undefined);
+    mockUserService.getMe.mockResolvedValue(null);
     const req = { auth: { sub: 'uuid-inexistente' } };
     const res = mockRes();
-    await getMe(req, res);
+    await controller.getMe(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
   test('500 - error del servicio', async () => {
-    mockGetUserById.mockRejectedValue(new Error('Error de BD'));
+    mockUserService.getMe.mockRejectedValue(new Error('Error de BD'));
     const req = { auth: { sub: 'uuid-123' } };
     const res = mockRes();
-    await getMe(req, res);
+    await controller.getMe(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
 });
 
-describe('Users Controller - update', () => {
+describe('UserController - update', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
   test('200 - actualización exitosa', async () => {
-    mockUpdateUser.mockResolvedValue({ message: 'Usuario actualizado correctamente' });
+    mockUserService.update.mockResolvedValue({ id: 1, nombre: 'Nuevo', correo: 'nuevo@test.com' });
     const req = { params: { id: '1' }, body: { nombre: 'Nuevo', correo: 'nuevo@test.com' } };
     const res = mockRes();
-    await update(req, res);
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  test('400 - faltan campos', async () => {
-    const req = { params: { id: '1' }, body: { nombre: 'Solo nombre' } };
+  test('400 - faltan nombre y correo', async () => {
+    const req = { params: { id: '1' }, body: {} };
     const res = mockRes();
-    await update(req, res);
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  test('404 - usuario no existe', async () => {
-    mockUpdateUser.mockRejectedValue(new Error('Usuario no encontrado'));
+  test('404 - usuario no existe via error', async () => {
+    mockUserService.update.mockRejectedValue(new Error('Usuario no encontrado'));
     const req = { params: { id: '9999' }, body: { nombre: 'x', correo: 'x@x.com' } };
     const res = mockRes();
-    await update(req, res);
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
   test('500 - error inesperado', async () => {
-    mockUpdateUser.mockRejectedValue(new Error('Error de BD'));
+    mockUserService.update.mockRejectedValue(new Error('Error de BD'));
     const req = { params: { id: '1' }, body: { nombre: 'x', correo: 'x@x.com' } };
     const res = mockRes();
-    await update(req, res);
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
 });
 
-describe('Users Controller - remove', () => {
+describe('UserController - remove', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
   test('200 - eliminación exitosa', async () => {
-    mockDeleteUser.mockResolvedValue({ message: 'Usuario eliminado correctamente' });
+    mockUserService.delete.mockResolvedValue(true);
     const req = { params: { id: '1' } };
     const res = mockRes();
-    await remove(req, res);
+    await controller.remove(req, res);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
   test('404 - usuario no existe', async () => {
-    mockDeleteUser.mockRejectedValue(new Error('Usuario no encontrado'));
+    mockUserService.delete.mockRejectedValue(new Error('Usuario no encontrado'));
     const req = { params: { id: '9999' } };
     const res = mockRes();
-    await remove(req, res);
+    await controller.remove(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
   test('500 - error inesperado', async () => {
-    mockDeleteUser.mockRejectedValue(new Error('Error de BD'));
+    mockUserService.delete.mockRejectedValue(new Error('Error de BD'));
     const req = { params: { id: '1' } };
     const res = mockRes();
-    await remove(req, res);
+    await controller.remove(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
 });

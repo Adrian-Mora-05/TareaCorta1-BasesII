@@ -13,7 +13,8 @@ jest.unstable_mockModule('../../src/services/auth.service.js', () => ({
   loginUser: mockLoginUser
 }));
 
-const { default: app } = await import('../../src/app.js');
+
+const { query } = await import('../../src/config/postgresdb.js');
 const { default: request } = await import('supertest');
 
 describe('Auth Integration', () => {
