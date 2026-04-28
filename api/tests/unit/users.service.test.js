@@ -1,47 +1,73 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
-const mockQuery = jest.fn();
-jest.unstable_mockModule('../../src/config/postgresdb.js', () => ({
-  query: mockQuery
-}));
+// Mock del userDAO inyectado en UserService
+const mockUserDAO = {
+  findByExternalId: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  findAll: jest.fn(),
+  create: jest.fn()
+};
 
-const { getUserById, updateUser, deleteUser } = await import('../../src/services/users.service.js');
+const { UserService } = await import('../../src/services/users.service.js');
 
-describe('Users Service', () => {
+// Instancia con el DAO mockeado
+const userService = new UserService(mockUserDAO);
+
+describe('UserService', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  test('getUserById - retorna usuario encontrado', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1, nombre: 'Juan', correo: 'j@j.com', rol: 'cliente' }] });
-    const result = await getUserById('uuid-123');
+  test('getMe - retorna usuario encontrado', async () => {
+    mockUserDAO.findByExternalId.mockResolvedValue({
+      id: 1,
+      nombre: 'Juan',
+      correo: 'j@j.com',
+      rol: 'cliente'
+    });
+
+    const result = await userService.getMe('uuid-123');
     expect(result).toHaveProperty('nombre', 'Juan');
+    expect(mockUserDAO.findByExternalId).toHaveBeenCalledWith('uuid-123');
   });
 
-  test('getUserById - retorna undefined si no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] });
-    const result = await getUserById('uuid-inexistente');
-    expect(result).toBeUndefined();
+  test('getMe - retorna null si no existe', async () => {
+    mockUserDAO.findByExternalId.mockResolvedValue(null);
+
+    const result = await userService.getMe('uuid-inexistente');
+    expect(result).toBeNull();
   });
 
-  test('updateUser - actualiza correctamente', async () => {
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1 }] });
-    const result = await updateUser(1, 'Juan', 'j@j.com');
-    expect(result).toHaveProperty('message', 'Usuario actualizado correctamente');
+  test('update - actualiza correctamente', async () => {
+    // findById confirma que el usuario existe
+    mockUserDAO.findById.mockResolvedValue({ id: 1, nombre: 'Juan', correo: 'j@j.com' });
+    mockUserDAO.update.mockResolvedValue({ id: 1, nombre: 'Nuevo', correo: 'nuevo@j.com' });
+
+    const result = await userService.update(1, { nombre: 'Nuevo', correo: 'nuevo@j.com' });
+    expect(result).toHaveProperty('nombre', 'Nuevo');
   });
 
-  test('updateUser - lanza error si usuario no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rowCount: 0 });
-    await expect(updateUser(99999, 'x', 'x@x.com')).rejects.toThrow('Usuario no encontrado');
+  test('update - lanza error si usuario no existe', async () => {
+    mockUserDAO.findById.mockResolvedValue(null);
+
+    await expect(userService.update(99999, { nombre: 'x' }))
+      .rejects.toThrow('Usuario no encontrado');
   });
 
-  test('deleteUser - elimina correctamente', async () => {
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1 }] });
-    const result = await deleteUser(1);
-    expect(result).toHaveProperty('message', 'Usuario eliminado correctamente');
+  test('delete - elimina correctamente', async () => {
+    mockUserDAO.findById.mockResolvedValue({ id: 1 });
+    mockUserDAO.delete.mockResolvedValue(true);
+
+    const result = await userService.delete(1);
+    expect(result).toBe(true);
   });
 
-  test('deleteUser - lanza error si usuario no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rowCount: 0 });
-    await expect(deleteUser(99999)).rejects.toThrow('Usuario no encontrado');
+  test('delete - lanza error si usuario no existe', async () => {
+    mockUserDAO.findById.mockResolvedValue(null);
+
+    await expect(userService.delete(99999))
+      .rejects.toThrow('Usuario no encontrado');
   });
+
 });

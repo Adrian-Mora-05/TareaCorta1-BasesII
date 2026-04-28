@@ -1,37 +1,86 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
-const mockQuery = jest.fn();
-jest.unstable_mockModule('../../src/config/postgresdb.js', () => ({
-  query: mockQuery
-}));
+// Mock del reservationDAO
+const mockReservationDAO = {
+  create: jest.fn(),
+  findById: jest.fn(),
+  cancel: jest.fn(),
+  findAll: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
 
-const { createReservation, cancelReservation } = await import('../../src/services/reservations.service.js');
+// Mock del userDAO inyectado también en ReservationService
+const mockUserDAO = {
+  findByExternalId: jest.fn(),
+  findById: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
 
-describe('Reservations Service', () => {
+const { ReservationService } = await import('../../src/services/reservations.service.js');
+
+// Instancia con ambos DAOs mockeados
+const reservationService = new ReservationService(mockReservationDAO, mockUserDAO);
+
+describe('ReservationService', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  test('createReservation - lanza error si usuario no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // usuario no encontrado
-    await expect(createReservation('uuid-xxx', 1, 1, '2027-01-01', 90, 4))
-      .rejects.toThrow('Usuario no encontrado en base de datos');
-  });
+  test('create - crea reserva correctamente', async () => {
+    // Usuario encontrado por su keycloakId
+    mockUserDAO.findByExternalId.mockResolvedValue({ id: 1 });
+    mockReservationDAO.create.mockResolvedValue({ id: 42 });
 
-  test('createReservation - crea reserva correctamente', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] }); // usuario encontrado
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 42 }] }); // reservar()
-    const result = await createReservation('uuid-123', 1, 1, '2027-01-01', 90, 4);
+    const result = await reservationService.create({
+      keycloakId: 'uuid-123',
+      id_restaurante: 1,
+      id_mesa: 1,
+      fecha: '2027-01-01',
+      duracion: 90,
+      personas: 4
+    });
+
     expect(result).toHaveProperty('id', 42);
+    // Verifica que create fue llamado con el id del usuario resuelto
+    expect(mockReservationDAO.create).toHaveBeenCalledWith({
+      id_usuario: 1,
+      id_restaurante: 1,
+      id_mesa: 1,
+      fecha: '2027-01-01',
+      duracion: 90,
+      personas: 4
+    });
   });
 
-  test('cancelReservation - cancela correctamente', async () => {
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1 }] }); // existe
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // cancelar_reserva
-    await expect(cancelReservation(1)).resolves.toBeUndefined();
+  test('create - lanza error si usuario no existe', async () => {
+    mockUserDAO.findByExternalId.mockResolvedValue(null);
+
+    await expect(reservationService.create({
+      keycloakId: 'uuid-xxx',
+      id_restaurante: 1,
+      id_mesa: 1,
+      fecha: '2027-01-01',
+      duracion: 90,
+      personas: 4
+    })).rejects.toThrow('Usuario no encontrado en base de datos');
   });
 
-  test('cancelReservation - lanza error si reserva no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rowCount: 0 });
-    await expect(cancelReservation(99999)).rejects.toThrow('Reserva no encontrada');
+  test('cancel - cancela correctamente', async () => {
+    // Reserva existe
+    mockReservationDAO.findById.mockResolvedValue({ id: 1, estado: 'reservada' });
+    mockReservationDAO.cancel.mockResolvedValue(true);
+
+    const result = await reservationService.cancel(1);
+    expect(result).toBe(true);
   });
+
+  test('cancel - lanza error si reserva no existe', async () => {
+    mockReservationDAO.findById.mockResolvedValue(null);
+
+    await expect(reservationService.cancel(99999))
+      .rejects.toThrow('Reserva no encontrada');
+  });
+
 });
