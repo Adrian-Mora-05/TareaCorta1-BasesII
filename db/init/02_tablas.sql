@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS usuario (
     nombre VARCHAR(100) NOT NULL,
     correo VARCHAR(150) UNIQUE NOT NULL,
     id_rol_usuario INT NOT NULL,
-    FOREIGN KEY (id_rol_usuario) REFERENCES rol_usuario(id)
+    FOREIGN KEY (id_rol_usuario)
+        REFERENCES rol_usuario(id)
 );
 
 CREATE TABLE IF NOT EXISTS mesa (
@@ -43,7 +44,9 @@ CREATE TABLE IF NOT EXISTS mesa (
     id_restaurante INT NOT NULL,
     num_mesa INT NOT NULL,
     capacidad INT NOT NULL,
-    FOREIGN KEY (id_restaurante) REFERENCES restaurante(id)
+    FOREIGN KEY (id_restaurante)
+        REFERENCES restaurante(id)
+        ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_mesa_restaurante ON mesa(id_restaurante);
@@ -58,10 +61,19 @@ CREATE TABLE IF NOT EXISTS reservacion (
     cant_personas INT NOT NULL,
     id_estado_reservacion INT NOT NULL,
 
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id),
-    FOREIGN KEY (id_restaurante) REFERENCES restaurante(id),
-    FOREIGN KEY (id_mesa) REFERENCES mesa(id),
-    FOREIGN KEY (id_estado_reservacion) REFERENCES estado_reservacion(id)
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id),
+
+    FOREIGN KEY (id_restaurante)
+        REFERENCES restaurante(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (id_mesa)
+        REFERENCES mesa(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (id_estado_reservacion)
+        REFERENCES estado_reservacion(id)
 );
 
 CREATE TABLE IF NOT EXISTS menu (
@@ -70,7 +82,9 @@ CREATE TABLE IF NOT EXISTS menu (
     id_restaurante INT NOT NULL,
     ultima_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (id_restaurante) REFERENCES restaurante(id)
+    FOREIGN KEY (id_restaurante)
+        REFERENCES restaurante(id)
+        ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_menu_restaurante ON menu(id_restaurante);
@@ -82,7 +96,9 @@ CREATE TABLE IF NOT EXISTS plato (
     precio NUMERIC(10,2) NOT NULL,
     descripcion TEXT,
 
-    FOREIGN KEY (id_menu) REFERENCES menu(id)
+    FOREIGN KEY (id_menu)
+        REFERENCES menu(id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS pedido (
@@ -94,10 +110,18 @@ CREATE TABLE IF NOT EXISTS pedido (
     id_estado_pedido INT NOT NULL,
     id_tipo_pedido INT NOT NULL,
 
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id),
-    FOREIGN KEY (id_restaurante) REFERENCES restaurante(id),
-    FOREIGN KEY (id_estado_pedido) REFERENCES estado_pedido(id),
-    FOREIGN KEY (id_tipo_pedido) REFERENCES tipo_pedido(id)
+    FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id),
+
+    FOREIGN KEY (id_restaurante)
+        REFERENCES restaurante(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (id_estado_pedido)
+        REFERENCES estado_pedido(id),
+
+    FOREIGN KEY (id_tipo_pedido)
+        REFERENCES tipo_pedido(id)
 );
 
 CREATE TABLE IF NOT EXISTS plato_x_pedido (
@@ -107,6 +131,11 @@ CREATE TABLE IF NOT EXISTS plato_x_pedido (
     cantidad INT NOT NULL,
     subtotal NUMERIC(10,2),
 
-    FOREIGN KEY (id_plato) REFERENCES plato(id),
-    FOREIGN KEY (id_pedido) REFERENCES pedido(id)
+    FOREIGN KEY (id_plato)
+        REFERENCES plato(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (id_pedido)
+        REFERENCES pedido(id)
+        ON DELETE CASCADE
 );

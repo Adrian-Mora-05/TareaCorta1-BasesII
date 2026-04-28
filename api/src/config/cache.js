@@ -2,7 +2,7 @@ import redis from './redis.js';
 
 // Tiempo de expiración en segundos para cada tipo de dato
 // Puedes ajustar estos valores según qué tan frecuente cambian los datos
-export const TTL = { //(tiempo de vida) Una pilitica de expiración, cuando expira, redis elimina la clave(key)
+export const TTL = { //(tiempo de vida) Una política de expiración, cuando expira, redis elimina la clave(key)
   RESTAURANTS: 300,  // 5 minutos
   MENUS: 180,        // 3 minutos
   SEARCH: 60         // 1 minuto

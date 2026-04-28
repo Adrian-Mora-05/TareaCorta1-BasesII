@@ -62,7 +62,6 @@ export class DAOFactory {
    * @param {Object} connection — Pool de pg o instancia db de Mongo.
    */
   constructor(engine, connection) {
-    // ── ÚNICO IF RELACIONADO A QUÉ BD USAR ────────────────────────
     if (!drivers[engine]) {
       throw new Error(
         `Motor de BD no soportado: "${engine}". ` +

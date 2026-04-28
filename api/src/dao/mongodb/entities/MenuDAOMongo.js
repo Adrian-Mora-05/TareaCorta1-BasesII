@@ -3,13 +3,6 @@ import { MongoBaseDAO } from '../MongoBaseDAO.js';
 /**
  * MenuDAOMongo — DAO de menús para MongoDB.
  *
- * Cambios respecto al código anterior:
- *  - Extiende MongoBaseDAO (recibe db por inyección, no llama getMongo())
- *  - create recibe objeto data — cumple contrato BaseDAO
- *  - update recibe objeto data — cumple contrato BaseDAO
- *  - update retorna el documento actualizado (antes no retornaba nada)
- *  - delete retorna boolean (antes lanzaba error si no existía — eso es del servicio)
- *  - Agrega timestamp ultima_actualizacion en create y update
  */
 export class MenuDAOMongo extends MongoBaseDAO {
   constructor(db) {

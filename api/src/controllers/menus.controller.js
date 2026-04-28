@@ -1,11 +1,6 @@
 /**
  * MenuController — Maneja POST, GET /:id, PUT /:id, DELETE /:id de /menus.
  *
- * Cambios respecto al código anterior:
- *  - Era módulo de funciones sueltas; ahora clase inyectable
- *  - La verificación de existencia (findById antes de update/delete)
- *    se movió al servicio — el controlador solo maneja HTTP
- *  - Los métodos son arrow functions para preservar `this` en Express
  */
 export class MenuController {
   /** @param {import('../services/menus.service.js').MenuService} menuService */

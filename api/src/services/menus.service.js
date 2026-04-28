@@ -3,13 +3,6 @@ import { getCache, setCache, deletePattern, TTL } from '../config/cache.js';
 /**
  * MenuService — Lógica de negocio para menús.
  *
- * Cambios respecto al código anterior:
- *  - Era módulo de funciones sueltas con getMenuDAO() global; ahora clase inyectable
- *  - BUG CRÍTICO corregido: getMenuById, updateMenu y deleteMenu usaban
- *    `idRestaurante` que no existía en su scope → ReferenceError en runtime
- *  - La clave de caché por menú individual usa el `id` del menú, no el restaurante
- *  - create/update reciben objeto data en vez de parámetros posicionales
- *  - update y delete verifican existencia antes de operar (lógica de negocio)
  */
 export class MenuService {
   /**

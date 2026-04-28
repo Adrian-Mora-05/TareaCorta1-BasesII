@@ -69,18 +69,25 @@ services:
     build: ./api
     container_name: api
     depends_on:
-      - db_api
-      - keycloak
-      - mongo1
-      - mongo2
-      - mongo3
-      - redis
+      db_api:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      mongo1:
+        condition: service_started
+      mongo2:
+        condition: service_started
+      mongo3:
+        condition: service_started
+      redis:
+        condition: service_healthy
     environment:
       DB_HOST: db_api
       DB_PORT: 5432
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${RESTAURANT_DB}
+      DB_ENGINE: ${DB_ENGINE}
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_PUBLIC_URL: http://localhost:8080 
       REALM: ${REALM}
@@ -100,14 +107,19 @@ services:
     depends_on:
       db_api:
         condition: service_healthy
+      keycloak:
+        condition: service_started
+      redis:
+        condition: service_healthy
     environment:
       DB_HOST: db_api
       DB_PORT: 5432
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${RESTAURANT_DB}
-      KEYCLOAK_URL: http://localhost:8080
+      KEYCLOAK_URL: http://keycloak:8080
       REALM: ${REALM}
+      REDIS_URL: redis://redis:6379
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
@@ -186,6 +198,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      
 volumes:
   pgdata_api:
   pgdata_keycloak:
