@@ -8,9 +8,8 @@ on:
 
 jobs:
   
+  # ============================================================
   # JOB 1 — Pruebas unitarias
-  # Están en api/tests/unit/
-  # No necesitan base de datos porque todo está mockeado
   # ============================================================
   unit-tests:
     name: Pruebas Unitarias
@@ -31,26 +30,23 @@ jobs:
         working-directory: api
         run: npm install
 
-      # Corre solo los archivos dentro de tests/unit/
       - name: Correr pruebas unitarias
         working-directory: api
         run: node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern="tests/unit/" --coverage
         env:
-          DB_TYPE: postgres
+          DB_ENGINE: postgres
           KEYCLOAK_URL: http://localhost:8080
 
-      # Corre el archivo de controllers que está en src/tests/
       - name: Correr pruebas de controllers
         working-directory: api
         run: node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern="src/tests/" --coverage
         env:
-          DB_TYPE: postgres
+          DB_ENGINE: postgres
           KEYCLOAK_URL: http://localhost:8080
 
-  
+
+  # ============================================================
   # JOB 2 — Pruebas de integración
-  # Están en api/tests/integration/
-  # Necesitan PostgreSQL corriendo
   # ============================================================
   integration-tests:
     name: Pruebas de Integración
@@ -90,7 +86,6 @@ jobs:
       - name: Instalar psql
         run: sudo apt-get install -y postgresql-client
 
-      # Corre los 4 archivos SQL para crear el esquema
       - name: Inicializar base de datos
         run: |
           psql -h localhost -U admin -d restaurantdb -f db/init/01_schema.sql
@@ -100,22 +95,21 @@ jobs:
         env:
           PGPASSWORD: admin123
 
-      # Corre solo los archivos dentro de tests/integration/
       - name: Correr pruebas de integración
         working-directory: api
         run: node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern="tests/integration/"
         env:
+          DB_ENGINE: postgres
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: admin
           DB_PASSWORD: admin123
           DB_NAME: restaurantdb
-          DB_TYPE: postgres
           KEYCLOAK_URL: http://localhost:8080
 
-  
+
+  # ============================================================
   # JOB 3 — Build y Push Docker
-  # Solo corre en main cuando los dos jobs anteriores pasan
   # ============================================================
   build-and-push:
     name: Build y Push Docker
