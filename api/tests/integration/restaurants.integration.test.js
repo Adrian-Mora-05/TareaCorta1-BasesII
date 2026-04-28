@@ -7,7 +7,7 @@ jest.unstable_mockModule('../../src/middlewares/auth.js', () => ({
 
 const { default: app } = await import('../../src/app.js');
 const { default: request } = await import('supertest');
-const { query } = await import('../../src/config/db.js');
+const { query } = await import('../../src/config/postgresdb.js');
 
 describe('Restaurants Integration', () => {
 
