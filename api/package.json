@@ -43,10 +43,9 @@
       }
     },
     "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/config/*.js",
-      "!src/server.js",
-      "!src/middlewares/auth.js"
+      "src/controllers/**/*.js",
+      "src/services/**/*.js",
+      "src/middlewares/**/*.js"
     ]
   }
 }

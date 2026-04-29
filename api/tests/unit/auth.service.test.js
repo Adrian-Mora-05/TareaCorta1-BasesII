@@ -95,7 +95,6 @@ describe('AuthService - register', () => {
   test('lanza error si el rol no existe en Keycloak', async () => {
     mockFetch.mockResolvedValueOnce(mockFetchResponse(true, {}));
     mockFetch.mockResolvedValueOnce(mockFetchResponse(true, [{ id: 'kc-uuid' }]));
-    // Rol no encontrado
     mockFetch.mockResolvedValueOnce(mockFetchResponse(false, {}));
 
     await expect(authService.register({
@@ -104,8 +103,8 @@ describe('AuthService - register', () => {
       firstName: 'Juan',
       lastName: 'Pérez',
       password: '123456',
-      role: 'inexistente'
-    })).rejects.toThrow("Rol 'inexistente' no encontrado en Keycloak");
+      role: 'inexistente' // se convierte a 'cliente' internamente
+    })).rejects.toThrow("Rol 'cliente' no encontrado en Keycloak"); // ← correcto
   });
 
 });

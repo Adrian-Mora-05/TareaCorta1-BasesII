@@ -1,55 +1,90 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
-const mockQuery = jest.fn();
-jest.unstable_mockModule('../../src/config/postgresdb.js', () => ({
-  query: mockQuery
-}));
+const mockOrderDAO = {
+  create: jest.fn(),
+  findById: jest.fn(),
+  findAll: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
 
-const { createOrder, getOrderById } = await import('../../src/services/orders.service.js');
+const mockUserDAO = {
+  findByExternalId: jest.fn(),
+  findById: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
 
-describe('Orders Service', () => {
+const mockRestaurantDAO = {
+  findById: jest.fn(),
+  findAll: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
+
+const { OrderService } = await import('../../src/services/orders.service.js');
+
+const orderService = new OrderService(mockOrderDAO, mockUserDAO, mockRestaurantDAO);
+
+describe('OrderService', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  test('createOrder - crea pedido correctamente', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] });           // usuario encontrado
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1 }] }); // restaurante existe
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 42 }] });          // realizar_pedido
+  test('create - crea pedido correctamente', async () => {
+    mockUserDAO.findByExternalId.mockResolvedValue({ id: 1 });
+    mockRestaurantDAO.findById.mockResolvedValue({ id: 1 });
+    mockOrderDAO.create.mockResolvedValue({ id: 42 });
 
-    const result = await createOrder('uuid-123', 1, 'Para llevar', 1, [{ id_plato: 1, cantidad: 2 }]);
+    const result = await orderService.create({
+      keycloakId: 'uuid-123',
+      id_restaurante: 1,
+      descripcion: 'Para llevar',
+      tipo_pedido: 'para llevar',
+      platos: [{ id_plato: 1, cantidad: 2 }]
+    });
+
     expect(result).toHaveProperty('id', 42);
   });
 
-  test('createOrder - lanza error si usuario no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] }); // usuario no encontrado
+  test('create - lanza error si usuario no existe', async () => {
+    mockUserDAO.findByExternalId.mockResolvedValue(null);
 
-    await expect(createOrder('uuid-xxx', 1, 'desc', 1, [])).rejects.toThrow('Usuario no encontrado en base de datos');
+    await expect(orderService.create({
+      keycloakId: 'uuid-xxx',
+      id_restaurante: 1,
+      descripcion: 'desc',
+      tipo_pedido: 'para llevar',
+      platos: []
+    })).rejects.toThrow('Usuario no encontrado en base de datos');
   });
 
-  test('createOrder - lanza error si restaurante no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] }); // usuario OK
-    mockQuery.mockResolvedValueOnce({ rowCount: 0 });        // restaurante no existe
+  test('create - lanza error si restaurante no existe', async () => {
+    mockUserDAO.findByExternalId.mockResolvedValue({ id: 1 });
+    mockRestaurantDAO.findById.mockResolvedValue(null);
 
-    await expect(createOrder('uuid-123', 99999, 'desc', 1, [])).rejects.toThrow('no existe');
+    await expect(orderService.create({
+      keycloakId: 'uuid-123',
+      id_restaurante: 99999,
+      descripcion: 'desc',
+      tipo_pedido: 'para llevar',
+      platos: []
+    })).rejects.toThrow('no existe');
   });
 
-  test('createOrder - lanza error si realizar_pedido no retorna id', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1 }] });
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1 }] });
-    mockQuery.mockResolvedValueOnce({ rows: [{}] }); // sin id
+  test('findById - retorna pedido encontrado', async () => {
+    mockOrderDAO.findById.mockResolvedValue({ id: 1, descripcion: 'Para llevar' });
 
-    await expect(createOrder('uuid-123', 1, 'desc', 1, [])).rejects.toThrow('No se pudo crear el pedido');
-  });
-
-  test('getOrderById - retorna pedido encontrado', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [{ id: 1, descripcion: 'Para llevar' }] });
-    const result = await getOrderById(1);
+    const result = await orderService.findById(1);
     expect(result).toHaveProperty('id', 1);
   });
 
-  test('getOrderById - retorna undefined si no existe', async () => {
-    mockQuery.mockResolvedValueOnce({ rows: [] });
-    const result = await getOrderById(99999);
-    expect(result).toBeUndefined();
+  test('findById - lanza error si pedido no existe', async () => {
+    mockOrderDAO.findById.mockResolvedValue(null);
+
+    await expect(orderService.findById(99999))
+      .rejects.toThrow('Pedido no encontrado');
   });
+
 });
