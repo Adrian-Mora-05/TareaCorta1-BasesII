@@ -61,7 +61,7 @@ describe('RestaurantDAOPostgres', () => {
     const result = await dao.findAll();
 
     expect(mockClient.query).toHaveBeenCalledWith(
-      'SELECT * FROM restaurant.listar_restaurantes()'
+      'SELECT * FROM restaurant.listar_restaurantes()',[]
     );
     expect(result).toHaveLength(2);
   });
