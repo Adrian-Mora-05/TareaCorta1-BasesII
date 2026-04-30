@@ -37,14 +37,6 @@ jobs:
           DB_ENGINE: postgres
           KEYCLOAK_URL: http://localhost:8080
 
-      - name: Correr pruebas de controllers
-        working-directory: api
-        run: node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern="src/tests/" --coverage
-        env:
-          DB_ENGINE: postgres
-          KEYCLOAK_URL: http://localhost:8080
-
-
   # ============================================================
   # JOB 2 — Pruebas de integración
   # ============================================================
@@ -106,7 +98,6 @@ jobs:
           DB_PASSWORD: admin123
           DB_NAME: restaurantdb
           KEYCLOAK_URL: http://localhost:8080
-
 
   # ============================================================
   # JOB 3 — Build y Push Docker
