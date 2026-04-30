@@ -4,7 +4,16 @@ jest.unstable_mockModule('../../src/middlewares/auth.js', () => ({
   checkJwt: (req, res, next) => { req.auth = { sub: 'integ-test-uuid', roles: ['admin'] }; next(); },
   optionalJwt: (req, res, next) => { req.auth = null; next(); }
 }));
-
+// Mockea Redis para que no falle en el pipeline
+jest.unstable_mockModule('../../src/config/redis.js', () => ({
+  default: {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    keys: jest.fn().mockResolvedValue([]),
+    on: jest.fn()
+  }
+}));
 const { default: app } = await import('../../src/app.js');
 const { default: request } = await import('supertest');
 const { query } = await import('../../src/config/postgresdb.js');

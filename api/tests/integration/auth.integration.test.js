@@ -8,6 +8,17 @@ jest.unstable_mockModule('../../src/middlewares/auth.js', () => ({
   optionalJwt: (req, res, next) => { req.auth = null; next(); }
 }));
 
+// Mockea Redis para que no falle en el pipeline
+jest.unstable_mockModule('../../src/config/redis.js', () => ({
+  default: {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    keys: jest.fn().mockResolvedValue([]),
+    on: jest.fn()
+  }
+}));
+
 jest.unstable_mockModule('../../src/services/auth.service.js', () => ({
   registrarUsuario: mockRegistrarUsuario,
   loginUser: mockLoginUser

@@ -59,7 +59,16 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
-
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -98,7 +107,7 @@ jobs:
           DB_PASSWORD: admin123
           DB_NAME: restaurantdb
           KEYCLOAK_URL: http://localhost:8080
-
+          REDIS_URL: redis://localhost:6379
   # ============================================================
   # JOB 3 — Build y Push Docker
   # ============================================================
