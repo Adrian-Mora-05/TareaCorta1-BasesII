@@ -4,41 +4,34 @@ jest.unstable_mockModule('../../src/middlewares/auth.js', () => ({
   checkJwt: (req, res, next) => { req.auth = { sub: 'integ-test-uuid', roles: ['admin'] }; next(); },
   optionalJwt: (req, res, next) => { req.auth = null; next(); }
 }));
-// Mockea Redis para que no falle en el pipeline
-jest.unstable_mockModule('../../src/config/redis.js', () => ({
-  default: {
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn().mockResolvedValue('OK'),
-    del: jest.fn().mockResolvedValue(1),
-    keys: jest.fn().mockResolvedValue([]),
-    on: jest.fn()
-  }
-}));
-const { default: app } = await import('../../src/app.js');
+
+const { createApp } = await import('../../src/app.js');
 const { default: request } = await import('supertest');
 const { query } = await import('../../src/config/postgresdb.js');
 
+let app;
+let restauranteId;
+let menuId;
+
+beforeAll(async () => {
+  app = await createApp();
+  const res = await query(
+    `INSERT INTO restaurant.restaurante (nombre, direccion, telefono)
+     VALUES ('Rest Menus Test', 'Dir Test', '0000') RETURNING id`
+  );
+  restauranteId = res.rows[0].id;
+});
+
+afterAll(async () => {
+  await query(`DELETE FROM restaurant.menu WHERE id_restaurante = $1`, [restauranteId]);
+  await query(`DELETE FROM restaurant.restaurante WHERE id = $1`, [restauranteId]);
+});
+
 describe('Menus Integration', () => {
 
-  let restauranteId;
-  let menuId;
-
-  beforeAll(async () => {
-    const res = await query(
-      `INSERT INTO restaurant.restaurante (nombre, direccion, telefono)
-       VALUES ('Rest Menus Test', 'Dir Test', '0000') RETURNING id`
-    );
-    restauranteId = res.rows[0].id;
-  });
-
-  afterAll(async () => {
-    await query(`DELETE FROM restaurant.menu WHERE id_restaurante = $1`, [restauranteId]);
-    await query(`DELETE FROM restaurant.restaurante WHERE id = $1`, [restauranteId]);
-  });
-
-  test('POST /menus - 201 crea menú', async () => {
+  test('POST /api/menus - 201 crea menú', async () => {
     const res = await request(app)
-      .post('/menus')
+      .post('/api/menus')
       .set('Authorization', 'Bearer fake-token')
       .send({ nombre: 'Menú Integración', id_restaurante: restauranteId });
     expect(res.status).toBe(201);
@@ -46,41 +39,42 @@ describe('Menus Integration', () => {
     menuId = res.body.id;
   });
 
-  test('POST /menus - 400 faltan campos', async () => {
+  test('POST /api/menus - 400 faltan campos', async () => {
     const res = await request(app)
-      .post('/menus')
+      .post('/api/menus')
       .set('Authorization', 'Bearer fake-token')
       .send({ nombre: 'Sin restaurante' });
     expect(res.status).toBe(400);
   });
 
-  test('GET /menus/:id - 200 menú encontrado', async () => {
+  test('GET /api/menus/:id - 200 menú encontrado', async () => {
     const res = await request(app)
-      .get(`/menus/${menuId}`)
+      .get(`/api/menus/${menuId}`)
       .set('Authorization', 'Bearer fake-token');
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('nombre', 'Menú Integración');
   });
 
-  test('GET /menus/:id - 404 menú no existe', async () => {
+  test('GET /api/menus/:id - 404 menú no existe', async () => {
     const res = await request(app)
-      .get('/menus/99999')
+      .get('/api/menus/99999')
       .set('Authorization', 'Bearer fake-token');
     expect(res.status).toBe(404);
   });
 
-  test('PUT /menus/:id - 200 actualiza menú', async () => {
+  test('PUT /api/menus/:id - 200 actualiza menú', async () => {
     const res = await request(app)
-      .put(`/menus/${menuId}`)
+      .put(`/api/menus/${menuId}`)
       .set('Authorization', 'Bearer fake-token')
       .send({ nombre: 'Menú Actualizado' });
     expect(res.status).toBe(200);
   });
 
-  test('DELETE /menus/:id - 200 elimina menú', async () => {
+  test('DELETE /api/menus/:id - 200 elimina menú', async () => {
     const res = await request(app)
-      .delete(`/menus/${menuId}`)
+      .delete(`/api/menus/${menuId}`)
       .set('Authorization', 'Bearer fake-token');
     expect(res.status).toBe(200);
   });
+
 });
