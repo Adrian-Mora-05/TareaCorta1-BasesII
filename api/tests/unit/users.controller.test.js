@@ -1,75 +1,116 @@
-import { jest } from '@jest/globals';
+import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
+// Mock del userService inyectado en UserController
 const mockUserService = {
-  getById: jest.fn(),
+  getMe: jest.fn(),
   update: jest.fn(),
   delete: jest.fn()
 };
 
-jest.unstable_mockModule('../../src/services/users.service.js', () => ({
-  UsersService: jest.fn(() => mockUserService)
-}));
+const { UserController } = await import('../../src/controllers/users.controller.js');
 
-const { getMe, update, remove } = await import('../../src/controllers/users.controller.js');
+const controller = new UserController(mockUserService);
 
-function mockReqRes(body = {}, params = {}, auth = {}) {
-  return {
-    req: { body, params, auth },
-    res: {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn()
-    }
-  };
+function mockRes() {
+  const res = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res;
 }
 
-describe('Users Controller', () => {
+describe('UserController - getMe', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  test('getMe → 200', async () => {
-    mockUserService.getById.mockResolvedValue({ id: 1 });
-
-    const { req, res } = mockReqRes({}, {}, { sub: 'uuid' });
-
-    await getMe(req, res);
+  test('200 - usuario encontrado', async () => {
+    mockUserService.getMe.mockResolvedValue({ id: 1, nombre: 'Juan', correo: 'j@j.com', rol: 'cliente' });
+    const req = { auth: { sub: 'uuid-123' } };
+    const res = mockRes();
+    await controller.getMe(req, res);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  test('getMe → 404', async () => {
-    mockUserService.getById.mockResolvedValue(null);
-
-    const { req, res } = mockReqRes({}, {}, { sub: 'uuid' });
-
-    await getMe(req, res);
+  test('404 - usuario no encontrado', async () => {
+    mockUserService.getMe.mockResolvedValue(null);
+    const req = { auth: { sub: 'uuid-inexistente' } };
+    const res = mockRes();
+    await controller.getMe(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
-  test('update → 200', async () => {
-    mockUserService.update.mockResolvedValue(true);
+  test('500 - error del servicio', async () => {
+    mockUserService.getMe.mockRejectedValue(new Error('Error de BD'));
+    const req = { auth: { sub: 'uuid-123' } };
+    const res = mockRes();
+    await controller.getMe(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
 
-    const { req, res } = mockReqRes(
-      { nombre: 'Nuevo', correo: 'a@a.com' },
-      { id: '1' }
-    );
+});
 
-    await update(req, res);
+describe('UserController - update', () => {
+
+  beforeEach(() => jest.clearAllMocks());
+
+  test('200 - actualización exitosa', async () => {
+    mockUserService.update.mockResolvedValue({ id: 1, nombre: 'Nuevo', correo: 'nuevo@test.com' });
+    const req = { params: { id: '1' }, body: { nombre: 'Nuevo', correo: 'nuevo@test.com' } };
+    const res = mockRes();
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
-  test('update → 400', async () => {
-    const { req, res } = mockReqRes({}, { id: '1' });
-
-    await update(req, res);
+  test('400 - faltan nombre y correo', async () => {
+    const req = { params: { id: '1' }, body: {} };
+    const res = mockRes();
+    await controller.update(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  test('remove → 200', async () => {
+  test('404 - usuario no existe via error', async () => {
+    mockUserService.update.mockRejectedValue(new Error('Usuario no encontrado'));
+    const req = { params: { id: '9999' }, body: { nombre: 'x', correo: 'x@x.com' } };
+    const res = mockRes();
+    await controller.update(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  test('500 - error inesperado', async () => {
+    mockUserService.update.mockRejectedValue(new Error('Error de BD'));
+    const req = { params: { id: '1' }, body: { nombre: 'x', correo: 'x@x.com' } };
+    const res = mockRes();
+    await controller.update(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+});
+
+describe('UserController - remove', () => {
+
+  beforeEach(() => jest.clearAllMocks());
+
+  test('200 - eliminación exitosa', async () => {
     mockUserService.delete.mockResolvedValue(true);
-
-    const { req, res } = mockReqRes({}, { id: '1' });
-
-    await remove(req, res);
+    const req = { params: { id: '1' } };
+    const res = mockRes();
+    await controller.remove(req, res);
     expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  test('404 - usuario no existe', async () => {
+    mockUserService.delete.mockRejectedValue(new Error('Usuario no encontrado'));
+    const req = { params: { id: '9999' } };
+    const res = mockRes();
+    await controller.remove(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  test('500 - error inesperado', async () => {
+    mockUserService.delete.mockRejectedValue(new Error('Error de BD'));
+    const req = { params: { id: '1' } };
+    const res = mockRes();
+    await controller.remove(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 
 });
