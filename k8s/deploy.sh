@@ -27,7 +27,7 @@ echo "Construyendo imagen API..."
 docker build -t restaurantes/api:latest ./api
 
 echo "Construyendo imagen Search..."
-docker build -t restaurantes/search:latest ./search_service
+docker build -t restaurantes/search:latest ./search-service
 
 # ── Namespace ─────────────────────────────────────────────────────
 kubectl apply -f k8s/namespace.yaml
