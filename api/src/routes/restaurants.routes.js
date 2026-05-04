@@ -1,13 +1,9 @@
 import { Router } from 'express';
-import { checkJwt }    from '../middlewares/auth.js';
-import { requireRole } from '../middlewares/roles.js';
+import { checkJwt }        from '../middlewares/auth.js';
+import { requireRole }     from '../middlewares/roles.js';
+import { cacheMiddleware } from '../middlewares/cache.middleware.js';
+import { TTL }             from '../config/cache.js';
 
-/**
- * createRestaurantRouter — Crea y retorna el router de restaurantes.
- *
- * @param {import('../controllers/restaurants.controller.js').RestaurantController} controller
- * @returns {Router}
- */
 export function createRestaurantRouter(controller) {
   const router = Router();
 
@@ -48,7 +44,12 @@ export function createRestaurantRouter(controller) {
    *     responses:
    *       200: { description: Lista de restaurantes }
    */
-  router.get('/', checkJwt, controller.findAll);
+  router.get(
+    '/',
+    checkJwt,
+    cacheMiddleware('restaurants:all', TTL.RESTAURANTS),
+    controller.findAll
+  );
 
   return router;
 }

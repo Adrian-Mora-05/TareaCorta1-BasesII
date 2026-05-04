@@ -1,0 +1,309 @@
+# mongodb/statefulset.yaml
+#
+# Stack MongoDB sharded para Minikube (recursos limitados):
+#   1. Config Server  — 1 nodo (configReplSet)
+#   2. Shard rs0      — 1 nodo
+#   3. Mongos         — router de queries
+#   4. Job mongo-init — inicializa replica sets y configura sharding
+
+# ── Config Server ─────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: configsvr
+  namespace: restaurantes
+  labels:
+    app: configsvr
+spec:
+  serviceName: configsvr-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: configsvr
+  template:
+    metadata:
+      labels:
+        app: configsvr
+    spec:
+      containers:
+        - name: configsvr
+          image: mongo:7
+          command:
+            - mongod
+            - "--configsvr"
+            - "--replSet"
+            - "configReplSet"
+            - "--bind_ip_all"
+            - "--wiredTigerCacheSizeGB"
+            - "0.25"
+          ports:
+            - containerPort: 27019
+          volumeMounts:
+            - name: configsvr-data
+              mountPath: /data/configdb
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - "--port"
+                - "27019"
+                - "--eval"
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "512Mi"
+            limits:
+              cpu:    "500m"
+              memory: "512Mi"
+  volumeClaimTemplates:
+    - metadata:
+        name: configsvr-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: configsvr-headless
+  namespace: restaurantes
+spec:
+  clusterIP: None
+  selector:
+    app: configsvr
+  ports:
+    - port: 27019
+      targetPort: 27019
+---
+# ── Shard rs0 ─────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: shard
+  namespace: restaurantes
+  labels:
+    app: shard
+spec:
+  serviceName: shard-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shard
+  template:
+    metadata:
+      labels:
+        app: shard
+    spec:
+      containers:
+        - name: shard
+          image: mongo:7
+          command:
+            - mongod
+            - "--shardsvr"
+            - "--replSet"
+            - "rs0"
+            - "--bind_ip_all"
+            - "--wiredTigerCacheSizeGB"
+            - "0.25"
+          ports:
+            - containerPort: 27018
+          volumeMounts:
+            - name: shard-data
+              mountPath: /data/db
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - "--port"
+                - "27018"
+                - "--eval"
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "512Mi"
+            limits:
+              cpu:    "500m"
+              memory: "512Mi"
+  volumeClaimTemplates:
+    - metadata:
+        name: shard-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 3Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shard-headless
+  namespace: restaurantes
+spec:
+  clusterIP: None
+  selector:
+    app: shard
+  ports:
+    - port: 27018
+      targetPort: 27018
+---
+# ── Mongos — router ───────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongos
+  namespace: restaurantes
+  labels:
+    app: mongos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongos
+  template:
+    metadata:
+      labels:
+        app: mongos
+    spec:
+      containers:
+        - name: mongos
+          image: mongo:7
+          command:
+            - mongos
+            - "--configdb"
+            - "configReplSet/configsvr-0.configsvr-headless.restaurantes.svc.cluster.local:27019"
+            - "--bind_ip_all"
+          ports:
+            - containerPort: 27017
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - "--eval"
+                - "db.runCommand({ ping: 1 })"
+            initialDelaySeconds: 40
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "400Mi"
+            limits:
+              cpu:    "500m"
+              memory: "400Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongos-service
+  namespace: restaurantes
+spec:
+  selector:
+    app: mongos
+  ports:
+    - protocol: TCP
+      port:       27017
+      targetPort: 27017
+  type: ClusterIP
+---
+# ── Job de inicialización ─────────────────────────────────────────
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongo-init
+  namespace: restaurantes
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mongo-init
+          image: mongo:7
+          command:
+            - bash
+            - "-c"
+            - |
+              set -e
+              NS="restaurantes.svc.cluster.local"
+              CONFIGSVR="configsvr-0.configsvr-headless.${NS}:27019"
+              SHARD0="shard-0.shard-headless.${NS}:27018"
+              MONGOS="mongos-service.${NS}:27017"
+
+              echo "=== Esperando configsvr (puerto 27019)... ==="
+              until mongosh --host "${CONFIGSVR}" --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do
+                echo "configsvr no listo, reintentando en 5s..."; sleep 5
+              done
+              echo "configsvr OK"
+
+              echo "=== Esperando shard (puerto 27018)... ==="
+              until mongosh --host "${SHARD0}" --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do
+                echo "shard no listo, reintentando en 5s..."; sleep 5
+              done
+              echo "shard OK"
+
+              echo "=== 1. Init configReplSet ==="
+              mongosh --host "${CONFIGSVR}" --eval "
+                try {
+                  rs.initiate({
+                    _id: 'configReplSet',
+                    configsvr: true,
+                    members: [{ _id: 0, host: '${CONFIGSVR}' }]
+                  });
+                  print('configReplSet iniciado');
+                } catch(e) {
+                  print('configReplSet: ' + e.message);
+                }
+              "
+              sleep 10
+
+              echo "=== 2. Init shard rs0 ==="
+              mongosh --host "${SHARD0}" --eval "
+                try {
+                  rs.initiate({
+                    _id: 'rs0',
+                    members: [{ _id: 0, host: '${SHARD0}' }]
+                  });
+                  print('rs0 iniciado');
+                } catch(e) {
+                  print('rs0: ' + e.message);
+                }
+              "
+              sleep 15
+
+              echo "=== Esperando mongos (puerto 27017)... ==="
+              until mongosh --host "${MONGOS}" --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do
+                echo "mongos no listo, reintentando en 5s..."; sleep 5
+              done
+              echo "mongos OK"
+
+              echo "=== 3. Registrar shard ==="
+              mongosh --host "${MONGOS}" --eval "
+                try {
+                  sh.addShard('rs0/${SHARD0}');
+                  print('Shard registrado');
+                } catch(e) {
+                  print('addShard: ' + e.message);
+                }
+              "
+
+              echo "=== 4. Habilitar sharding ==="
+              mongosh --host "${MONGOS}" --eval "
+                sh.enableSharding('restaurantdb');
+                sh.shardCollection('restaurantdb.pedidos',       { id_restaurante: 'hashed' });
+                sh.shardCollection('restaurantdb.reservaciones', { id_restaurante: 'hashed' });
+                print('Sharding listo');
+              "
+              echo "=== mongo-init completado ==="

@@ -38,8 +38,8 @@ INSERT INTO restaurant.menu (nombre, id_restaurante) VALUES
 ('Menú Principal', 1),
 ('Menú Pizza', 2);
 
-INSERT INTO restaurant.plato (id_menu, nombre, precio, descripcion) VALUES
-(1, 'Casado', 3500, 'Comida típica costarricense'),
-(1, 'Gallo Pinto', 2500, 'Desayuno típico'),
-(2, 'Pizza Pepperoni', 8000, 'Pizza clásica'),
-(2, 'Pizza Hawaiana', 8500, 'Pizza con piña');
+INSERT INTO restaurant.plato (id_menu, nombre, precio, descripcion, categoria) VALUES
+(1, 'Casado', 3500, 'Comida típica costarricense', 'Típico'),
+(1, 'Gallo Pinto', 2500, 'Desayuno típico', 'Desayuno'),
+(2, 'Pizza Pepperoni', 8000, 'Pizza clásica', 'Pizza'),
+(2, 'Pizza Hawaiana', 8500, 'Pizza con piña', 'Pizza');

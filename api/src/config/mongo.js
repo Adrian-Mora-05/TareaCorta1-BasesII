@@ -2,7 +2,7 @@ import { MongoClient } from 'mongodb';
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=rs0';
 const MONGO_DB = process.env.MONGO_DB || 'restaurantdb';
-
+  
 let db;
 
 export async function connectMongo() {

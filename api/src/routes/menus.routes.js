@@ -1,13 +1,9 @@
 import { Router } from 'express';
-import { checkJwt }    from '../middlewares/auth.js';
-import { requireRole } from '../middlewares/roles.js';
+import { checkJwt }        from '../middlewares/auth.js';
+import { requireRole }     from '../middlewares/roles.js';
+import { cacheMiddleware } from '../middlewares/cache.middleware.js';
+import { TTL }             from '../config/cache.js';
 
-/**
- * createMenuRouter — Crea y retorna el router de menús.
- *
- * @param {import('../controllers/menus.controller.js').MenuController} controller
- * @returns {Router}
- */
 export function createMenuRouter(controller) {
   const router = Router();
 
@@ -27,7 +23,7 @@ export function createMenuRouter(controller) {
    *             type: object
    *             required: [nombre, id_restaurante]
    *             properties:
-   *               nombre:         { type: string, example: Menú del día }
+   *               nombre:         { type: string,  example: Menú del día }
    *               id_restaurante: { type: integer, example: 1 }
    *     responses:
    *       201: { description: Menú creado correctamente }
@@ -53,7 +49,12 @@ export function createMenuRouter(controller) {
    *       200: { description: Detalles del menú }
    *       404: { description: Menú no encontrado }
    */
-  router.get('/:id', checkJwt, controller.findById);
+  router.get(
+    '/:id',
+    checkJwt,
+    cacheMiddleware((req) => `menus:item:${req.params.id}`, TTL.MENUS),
+    controller.findById
+  );
 
   /**
    * @swagger

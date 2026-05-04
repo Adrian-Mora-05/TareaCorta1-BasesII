@@ -93,5 +93,10 @@ export async function createApp() {
   app.use('/api/orders',       createOrderRouter(orderController));
   app.use('/api/reservations', createReservationRouter(reservationController));
 
+  // ── Health check para Kubernetes ─────────────────────────────
+  app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
   return app;
 }

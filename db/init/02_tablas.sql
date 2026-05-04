@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS reservacion (
     id_estado_reservacion INT NOT NULL,
 
     FOREIGN KEY (id_usuario)
-        REFERENCES usuario(id),
+        REFERENCES usuario(id)
+        ON DELETE CASCADE,
 
     FOREIGN KEY (id_restaurante)
         REFERENCES restaurante(id)
@@ -95,6 +96,7 @@ CREATE TABLE IF NOT EXISTS plato (
     nombre VARCHAR(150) NOT NULL,
     precio NUMERIC(10,2) NOT NULL,
     descripcion TEXT,
+    categoria VARCHAR(100),
 
     FOREIGN KEY (id_menu)
         REFERENCES menu(id)

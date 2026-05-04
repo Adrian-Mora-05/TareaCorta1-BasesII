@@ -3,7 +3,6 @@ import { MongoBaseDAO } from '../MongoBaseDAO.js';
 /**
  * OrderDAOMongo — DAO de pedidos para MongoDB.
  *
- * Cambios respecto al código anterior:
  *  - Extiende MongoBaseDAO (recibe db por inyección)
  *  - create recibe objeto data — cumple contrato BaseDAO
  *  - getUserByKeycloakId eliminado → va al servicio (resolución de identidad)
