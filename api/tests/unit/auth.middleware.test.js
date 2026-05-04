@@ -38,7 +38,7 @@ describe('auth middleware', () => {
   });
 
   test('optionalJwt llama next() aunque no haya token', () => {
-    // optionalJwt no debe bloquear peticiones sin token
+    //optionalJwt no debe bloquear peticiones sin token
     const req = { headers: {} };
     const res = {};
     const next = jest.fn();
