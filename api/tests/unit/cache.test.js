@@ -19,10 +19,10 @@ const { getCache, setCache, deleteCache, deletePattern, TTL } = await import('..
 describe('cache - TTL', () => {
 
   test('TTL tiene los valores correctos', () => {
-    // Verifica que los tiempos de expiración son los esperados
-    expect(TTL.RESTAURANTS).toBe(300);
-    expect(TTL.MENUS).toBe(180);
-    expect(TTL.SEARCH).toBe(60);
+    // Los TTL fueron actualizados por tu compañero
+    expect(TTL.RESTAURANTS).toBe(86400); // 24 horas
+    expect(TTL.MENUS).toBe(3600);        // 1 hora
+    expect(TTL.SEARCH).toBe(60);         // 1 minuto
   });
 
 });
