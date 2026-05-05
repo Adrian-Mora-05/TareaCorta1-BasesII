@@ -8,7 +8,7 @@ jest.unstable_mockModule('../../src/config/cache.js', () => ({
   getCache: jest.fn(),
   setCache: jest.fn(),
   deleteCache: jest.fn(),
-  TTL: { RESTAURANTS: 86400, MENUS: 3600, SEARCH: 60 }
+  TTL: { RESTAURANTS: 86400, MENUS: 86400, SEARCH: 60 }
 }));
 
 const mockRestaurantDAO = {
