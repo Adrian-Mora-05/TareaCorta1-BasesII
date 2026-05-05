@@ -1,5 +1,5 @@
-import { deletePattern } from '../config/cache.js';
-
+//import { deletePattern } from '../config/cache.js';
+import { getCache, setCache, TTL, deletePattern } from '../config/cache.js';
 /**
  * RestaurantService — Lógica de negocio para restaurantes.
  *
@@ -22,19 +22,9 @@ export class RestaurantService {
   }
 
   async findAll() {
-    //return this.dao.findAll();
+    return this.dao.findAll();
     
-  // intentar desde caché
-    const cached = await getCache('restaurants:all');
-    if (cached) return cached;
-
-    // ir a BD
-    const data = await this.dao.findAll();
-
-    //guardar en caché
-    await setCache('restaurants:all', data, TTL.RESTAURANTS);
-
-    return data ?? [];
+  
 
   }
 }

@@ -28,7 +28,7 @@ describe('UsersService', () => {
       nombre: 'Juan'
     });
 
-    const result = await service.getById('uuid-123');
+    const result = await service.getMe('uuid-123');
 
     expect(mockDAO.findById).toHaveBeenCalledWith('uuid-123');
     expect(result).toEqual({ id: 1, nombre: 'Juan' });
@@ -37,7 +37,7 @@ describe('UsersService', () => {
   test('getById → usuario no existe', async () => {
     mockDAO.findById.mockResolvedValue(null);
 
-    const result = await service.getById('uuid-x');
+    const result = await service.getMe('uuid-x');
 
     expect(result).toBeNull();
   });
