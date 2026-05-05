@@ -37,6 +37,15 @@ describe('UserController - getMe', () => {
     await controller.getMe(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
+  
+  test('404 - update retorna null (usuario no encontrado via retorno)', async () => {
+  mockUserService.update.mockResolvedValue(null);
+  const req = { params: { id: '99' }, body: { nombre: 'x', correo: 'x@x.com' } };
+  const res = mockRes();
+  await controller.update(req, res);
+  expect(res.status).toHaveBeenCalledWith(404);
+  });
+
 
   test('500 - error del servicio', async () => {
     mockUserService.getMe.mockRejectedValue(new Error('Error de BD'));

@@ -66,6 +66,16 @@ describe('AuthController - register', () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
+  test('403 - auth existe pero sin realm_access al crear admin', async () => {
+  const req = {
+    body: { username: 'hack', email: 'h@h.com', password: '123', role: 'admin' },
+    auth: {} // auth existe pero sin realm_access
+  };
+  const res = mockRes();
+  await controller.register(req, res);
+  expect(res.status).toHaveBeenCalledWith(403);
+  });
+
   test('500 - error del servicio', async () => {
     mockAuthService.register.mockRejectedValue(new Error('Error de Keycloak'));
     const req = {
