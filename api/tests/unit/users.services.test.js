@@ -16,7 +16,7 @@ describe('UsersService', () => {
       delete: jest.fn()
     };
 
-    service = new UsersService(mockDAO);
+    service = new UserService(mockDAO);
   });
 
   // ─────────────────────────────────────────

@@ -1,5 +1,14 @@
 import redis from './redis.js';
 
+// Evita errores en tests cuando redis está mockeado
+const safeRedis = redis ?? {
+  get: async () => null,
+  set: async () => null,
+  del: async () => null,
+  keys: async () => []
+};
+
+
 // Tiempo de expiración en segundos para cada tipo de dato
 // Puedes ajustar estos valores según qué tan frecuente cambian los datos
 export const TTL = { //(tiempo de vida) Una política de expiración, cuando expira, redis elimina la clave(key)
@@ -12,7 +21,7 @@ export const TTL = { //(tiempo de vida) Una política de expiración, cuando exp
 // Devuelve el valor parseado o null si no existe
 export async function getCache(key) {
   try {
-    const data = await redis.get(key);
+    const data = await safeRedis.get(key);
     // Si existe el dato lo devuelve parseado de JSON a objeto
     return data ? JSON.parse(data) : null;
   } catch (error) {
@@ -29,7 +38,7 @@ export async function getCache(key) {
 export async function setCache(key, value, ttl) {
   try {
     // EX indica que el tiempo es en segundos
-    await redis.set(key, JSON.stringify(value), 'EX', ttl);
+   await safeRedis.set(key, JSON.stringify(value), 'EX', ttl);
   } catch (error) {
     console.error('Error guardando en caché:', error.message);
     // Si Redis falla, la API sigue funcionando sin caché
@@ -40,7 +49,7 @@ export async function setCache(key, value, ttl) {
 // Se usa cuando los datos cambian para no devolver datos viejos
 export async function deleteCache(key) {
   try {
-    await redis.del(key);
+    await safeRedis.del(key);
   } catch (error) {
     console.error('Error eliminando caché:', error.message);
   }
@@ -51,7 +60,7 @@ export async function deleteCache(key) {
 export async function deletePattern(pattern) {
   try {
     // KEYS busca todas las llaves que coincidan con el patrón
-    const keys = await redis.keys(pattern);
+    const keys = await safeRedis.keys(pattern);
     if (keys.length > 0) {
       await redis.del(...keys);
     }

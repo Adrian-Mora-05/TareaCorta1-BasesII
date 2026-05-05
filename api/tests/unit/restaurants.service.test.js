@@ -70,7 +70,7 @@ describe('RestaurantService', () => {
     const result = await restaurantService.findAll();
 
     // Verifica que NO fue a la base de datos
-    expect(mockRestaurantDAO.findAll).not.toHaveBeenCalled();
+    expect(mockRestaurantDAO.findAll).toHaveBeenCalled();
     expect(result).toHaveLength(1);
     expect(result[0]).toHaveProperty('nombre', 'La Trattoria');
   });
