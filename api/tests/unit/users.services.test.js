@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import { UsersService } from '../../src/services/users.service.js';
-
+//import { UsersService } from '../../src/services/users.service.js';
+const { UserService } = await import('../../src/services/users.service.js');
 describe('UsersService', () => {
 
   let mockDAO;

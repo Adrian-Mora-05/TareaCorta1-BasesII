@@ -1,5 +1,5 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
-
+const { ReservationService } = await import('../../src/services/reservations.service.js');
 // Mock del caché — ahora el service solo usa deletePattern
 const mockDeletePattern = jest.fn();
 
