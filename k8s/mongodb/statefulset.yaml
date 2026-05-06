@@ -16,7 +16,7 @@ metadata:
     app: configsvr
 spec:
   serviceName: configsvr-headless
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: configsvr
@@ -92,7 +92,7 @@ metadata:
     app: shard
 spec:
   serviceName: shard-headless
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: shard
@@ -240,6 +240,8 @@ spec:
               NS="restaurantes.svc.cluster.local"
               CONFIGSVR="configsvr-0.configsvr-headless.${NS}:27019"
               SHARD0="shard-0.shard-headless.${NS}:27018"
+              SHARD1="shard-1.shard-headless.${NS}:27018"
+              SHARD2="shard-2.shard-headless.${NS}:27018"
               MONGOS="mongos-service.${NS}:27017"
 
               echo "=== Esperando configsvr (puerto 27019)... ==="
@@ -248,9 +250,12 @@ spec:
               done
               echo "configsvr OK"
 
-              echo "=== Esperando shard (puerto 27018)... ==="
-              until mongosh --host "${SHARD0}" --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do
-                echo "shard no listo, reintentando en 5s..."; sleep 5
+              echo "=== Esperando shards (puerto 27018)... ==="
+              for h in "${SHARD0}" "${SHARD1}" "${SHARD2}"; do
+                until mongosh --host "$h" --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do
+                  echo "Esperando $h..."
+                  sleep 5
+                done
               done
               echo "shard OK"
 
@@ -269,17 +274,18 @@ spec:
               "
               sleep 10
 
-              echo "=== 2. Init shard rs0 ==="
+              echo "=== 2. Init shard rs0 (3 nodos) ==="
               mongosh --host "${SHARD0}" --eval "
                 try {
                   rs.initiate({
                     _id: 'rs0',
-                    members: [{ _id: 0, host: '${SHARD0}' }]
+                    members: [
+                      { _id: 0, host: '${SHARD0}' },
+                      { _id: 1, host: '${SHARD1}' },
+                      { _id: 2, host: '${SHARD2}' }
+                    ]
                   });
-                  print('rs0 iniciado');
-                } catch(e) {
-                  print('rs0: ' + e.message);
-                }
+                } catch(e) {}
               "
               sleep 15
 
@@ -292,8 +298,8 @@ spec:
               echo "=== 3. Registrar shard ==="
               mongosh --host "${MONGOS}" --eval "
                 try {
-                  sh.addShard('rs0/${SHARD0}');
-                  print('Shard registrado');
+                  sh.addShard('rs0/${SHARD0},${SHARD1},${SHARD2}');
+                  print('Shards registrados');
                 } catch(e) {
                   print('addShard: ' + e.message);
                 }

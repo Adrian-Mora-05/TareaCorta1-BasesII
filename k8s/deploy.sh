@@ -1,123 +1,107 @@
 #!/bin/bash
-# k8s/deploy.sh
-#
-# Despliega el stack completo en minikube con imágenes locales.
+# deploy.sh — Despliegue completo en Minikube (Linux/Mac)
 #
 # Uso:
-#   chmod +x k8s/deploy.sh
-#   ./k8s/deploy.sh mongodb    (default)
-#   ./k8s/deploy.sh postgres
+#   chmod +x deploy.sh
+#   ./deploy.sh              → MongoDB (default)
+#   ./deploy.sh postgres     → PostgreSQL
+#   ./deploy.sh mongodb --clean → Borra cluster y despliega
 
 set -e
+
 ENGINE=${1:-mongodb}
+CLEAN=${2:-""}
+NS="restaurantes"
 
-# ── Prerequisitos ─────────────────────────────────────────────────
-echo "Verificando minikube..."
-minikube status | grep -q "Running" || {
-  echo "ERROR: minikube no está corriendo."
-  echo "Ejecuta: minikube start --memory=10240 --cpus=6"
-  exit 1
-}
+# ── Limpieza opcional ─────────────────────────────────────────────
+if [ "$CLEAN" = "--clean" ]; then
+    echo "Limpiando cluster anterior..."
+    minikube delete
+fi
 
-echo "Apuntando Docker al daemon de minikube..."
-eval $(minikube docker-env)
+# ── Arrancar minikube ─────────────────────────────────────────────
+echo "Arrancando Minikube..."
+minikube start --memory=7598 --cpus=3
 
-# ── Construir imágenes ────────────────────────────────────────────
-echo "Construyendo imagen API..."
-docker build -t restaurantes/api:latest ./api
-
-echo "Construyendo imagen Search..."
-docker build -t restaurantes/search:latest ./search-service
+# ── Cargar imágenes ───────────────────────────────────────────────
+echo "Cargando imágenes en Minikube..."
+minikube image load restaurantes/api:latest
+minikube image load restaurantes/search:latest
 
 # ── Namespace ─────────────────────────────────────────────────────
 kubectl apply -f k8s/namespace.yaml
 
-# ── Secrets desde .env ───────────────────────────────────────────
-if [ -f .env ]; then
-  source .env
-  kubectl create secret generic restaurantes-secrets \
-    --from-literal=DB_USER="${POSTGRES_USER:-postgres}" \
-    --from-literal=DB_PASSWORD="${POSTGRES_PASSWORD:-postgres}" \
-    --from-literal=KEYCLOAK_ADMIN="${KEYCLOAK_ADMIN:-admin}" \
-    --from-literal=KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-admin}" \
-    --from-literal=KEYCLOAK_CLIENT_ID="${KEYCLOAK_CLIENT_ID:-api-restaurant}" \
-    --from-literal=KEYCLOAK_CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-api-restaurant-secret}" \
-    -n restaurantes --dry-run=client -o yaml | kubectl apply -f -
-else
-  kubectl apply -f k8s/secrets.yaml -n restaurantes
-fi
+# ── ConfigMap y Secrets ───────────────────────────────────────────
+echo "Aplicando configuración (motor: $ENGINE)..."
+kubectl apply -f k8s/configmap.yaml -n $NS
+kubectl apply -f k8s/secrets.yaml   -n $NS
+kubectl patch configmap restaurantes-config -n $NS \
+    --patch "{\"data\": {\"DB_ENGINE\": \"$ENGINE\"}}"
 
-# ── ConfigMap ─────────────────────────────────────────────────────
-kubectl apply -f k8s/configmap.yaml -n restaurantes
-kubectl patch configmap restaurantes-config -n restaurantes \
-  --patch "{\"data\": {\"DB_ENGINE\": \"$ENGINE\"}}"
-
-# ── Realm Keycloak ────────────────────────────────────────────────
+# ── Realm de Keycloak ─────────────────────────────────────────────
 kubectl create configmap keycloak-realm-config \
-  --from-file=realm-export.json=./keycloak/realm-export.json \
-  -n restaurantes --dry-run=client -o yaml | kubectl apply -f -
+    --from-file=realm-export.json=./keycloak/realm-export.json \
+    -n $NS --dry-run=client -o yaml | kubectl apply -f -
 
-# ── Infraestructura ───────────────────────────────────────────────
-kubectl apply -f k8s/redis/deployment.yaml          -n restaurantes
-kubectl apply -f k8s/elasticsearch/statefulset.yaml  -n restaurantes
-kubectl apply -f k8s/keycloak/deployment.yaml        -n restaurantes
+# ── Infraestructura base ──────────────────────────────────────────
+echo "Levantando infraestructura base..."
+kubectl apply -f k8s/redis/deployment.yaml          -n $NS
+kubectl apply -f k8s/elasticsearch/statefulset.yaml -n $NS
+kubectl apply -f k8s/keycloak/keycloak-stack.yaml   -n $NS
 
+# ── Base de datos según motor ─────────────────────────────────────
 if [ "$ENGINE" = "mongodb" ]; then
-  echo "Desplegando MongoDB sharded (configsvr + shard + mongos + init Job)..."
-  kubectl apply -f k8s/mongodb/statefulset.yaml -n restaurantes
+    echo "Desplegando MongoDB sharded..."
+    kubectl apply -f k8s/mongodb/statefulset.yaml -n $NS
 
-  echo "Esperando config servers..."
-  kubectl wait --for=condition=ready pod -l app=configsvr \
-    --timeout=120s -n restaurantes
-
-  echo "Esperando shard nodes..."
-  kubectl wait --for=condition=ready pod -l app=shard \
-    --timeout=120s -n restaurantes
-
-  echo "Esperando mongos..."
-  kubectl wait --for=condition=ready pod -l app=mongos \
-    --timeout=60s -n restaurantes
-
-  echo "Esperando Job mongo-init..."
-  kubectl wait --for=condition=complete job/mongo-init \
-    --timeout=120s -n restaurantes
+    echo "Esperando config server..."
+    kubectl wait --for=condition=ready pod -l app=configsvr --timeout=180s -n $NS
+    echo "Esperando shard..."
+    kubectl wait --for=condition=ready pod -l app=shard     --timeout=180s -n $NS
+    echo "Esperando mongos..."
+    kubectl wait --for=condition=ready pod -l app=mongos    --timeout=90s  -n $NS
+    echo "Esperando Job de init..."
+    kubectl wait --for=condition=complete job/mongo-init    --timeout=120s -n $NS
+    echo "MongoDB listo."
 else
-  kubectl apply -f k8s/postgres/statefulset.yaml -n restaurantes
-  kubectl wait --for=condition=ready pod -l app=postgres \
-    --timeout=120s -n restaurantes
+    echo "Desplegando PostgreSQL..."
+    kubectl apply -f k8s/postgres/statefulset.yaml -n $NS
+    kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s -n $NS
+    echo "PostgreSQL listo."
 fi
 
-echo "Esperando Redis..."
-kubectl wait --for=condition=ready pod -l app=redis \
-  --timeout=60s -n restaurantes
+# ── Esperar Keycloak PostgreSQL y Keycloak ────────────────────────
+echo "Esperando PostgreSQL de Keycloak..."
+kubectl wait --for=condition=ready pod -l app=keycloak-postgres --timeout=120s -n $NS
 
-echo "Esperando ElasticSearch..."
-kubectl wait --for=condition=ready pod -l app=elasticsearch \
-  --timeout=180s -n restaurantes
-
-echo "Esperando Keycloak..."
-kubectl wait --for=condition=ready pod -l app=keycloak \
-  --timeout=180s -n restaurantes
+echo "Esperando Keycloak (puede tardar 2-3 minutos)..."
+kubectl wait --for=condition=ready pod -l app=keycloak --timeout=300s -n $NS
+echo "Keycloak listo."
 
 # ── Microservicios ────────────────────────────────────────────────
-kubectl apply -f k8s/api/deployment.yaml    -n restaurantes
-kubectl apply -f k8s/api/hpa.yaml           -n restaurantes
-kubectl apply -f k8s/search/deployment.yaml -n restaurantes
-kubectl apply -f k8s/nginx/deployment.yaml  -n restaurantes
+echo "Levantando microservicios..."
+kubectl apply -f k8s/api/deployment.yaml    -n $NS
+kubectl apply -f k8s/api/hpa.yaml           -n $NS
+kubectl apply -f k8s/search/deployment.yaml -n $NS
+kubectl apply -f k8s/nginx/deployment.yaml  -n $NS
 
+kubectl wait --for=condition=ready pod -l app=api    --timeout=120s -n $NS
+kubectl wait --for=condition=ready pod -l app=search --timeout=120s -n $NS
+kubectl wait --for=condition=ready pod -l app=nginx  --timeout=60s  -n $NS
+
+# ── Resumen ───────────────────────────────────────────────────────
 echo ""
 echo "========================================"
-echo " Stack completo desplegado"
+echo "  DESPLIEGUE COMPLETADO — Motor: $ENGINE"
 echo "========================================"
-kubectl get pods     -n restaurantes
+kubectl get pods -n $NS
 echo ""
-kubectl get services -n restaurantes
+echo "Pasos para acceder:"
+echo "  1. En otra terminal: minikube tunnel"
+echo "  2. En otra terminal: kubectl port-forward svc/keycloak-service 9999:8080 -n restaurantes"
 echo ""
-echo "Verificar sharding:"
-echo "  kubectl exec -it \$(kubectl get pod -l app=mongos -n restaurantes -o name | head -1) -n restaurantes -- mongosh --eval 'sh.status()'"
-echo ""
-echo "Escalar API:"
-echo "  kubectl scale deployment api --replicas=5 -n restaurantes"
-echo ""
-echo "Ver HPA:"
-echo "  kubectl get hpa -n restaurantes -w"
+echo "Endpoints:"
+echo "  GET  http://localhost/health"
+echo "  GET  http://localhost/api/restaurants  (requiere token)"
+echo "  GET  http://localhost/search/products?q=pizza"
+echo "  POST http://localhost/search/reindex"
