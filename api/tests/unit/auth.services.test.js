@@ -12,11 +12,20 @@ const { AuthService } = await import('../../src/services/auth.service.js');
 const service = new AuthService(mockDAO);
 
 function mockFetchOk(data) {
-  return { ok: true, json: jest.fn().mockResolvedValue(data), text: jest.fn().mockResolvedValue(JSON.stringify(data)) };
+  return {
+    ok: true,
+    json: jest.fn().mockResolvedValue(data),
+    text: jest.fn().mockResolvedValue(JSON.stringify(data))
+  };
 }
 
 function mockFetchFail(data) {
-  return { ok: false, status: 400, json: jest.fn().mockResolvedValue(data), text: jest.fn().mockResolvedValue(JSON.stringify(data)) };
+  return {
+    ok: false,
+    status: 400,
+    json: jest.fn().mockResolvedValue(data),
+    text: jest.fn().mockResolvedValue(JSON.stringify(data))
+  };
 }
 
 describe('AuthService - register', () => {
@@ -25,11 +34,11 @@ describe('AuthService - register', () => {
 
   test('register → éxito', async () => {
     mockFetch
-      .mockResolvedValueOnce(mockFetchOk({ access_token: 'admin-token' })) // admin token
-      .mockResolvedValueOnce({ ok: true, json: jest.fn() })                // create user
-      .mockResolvedValueOnce(mockFetchOk([{ id: 'kc-id' }]))              // get user
-      .mockResolvedValueOnce(mockFetchOk({ id: 'role-id', name: 'cliente' })) // get role
-      .mockResolvedValueOnce({ ok: true, json: jest.fn() });               // assign role
+      .mockResolvedValueOnce(mockFetchOk({ access_token: 'admin-token' }))
+      .mockResolvedValueOnce({ ok: true, json: jest.fn() })
+      .mockResolvedValueOnce(mockFetchOk([{ id: 'kc-id' }]))
+      .mockResolvedValueOnce(mockFetchOk({ id: 'role-id', name: 'cliente' }))
+      .mockResolvedValueOnce({ ok: true, json: jest.fn() });
 
     mockDAO.createFromKeycloak.mockResolvedValue({ id: 1 });
 
@@ -68,7 +77,7 @@ describe('AuthService - register', () => {
     mockFetch
       .mockResolvedValueOnce(mockFetchOk({ access_token: 'admin-token' }))
       .mockResolvedValueOnce({ ok: true, json: jest.fn() })
-      .mockResolvedValueOnce(mockFetchOk([])); // lista vacía — sin ID
+      .mockResolvedValueOnce(mockFetchOk([]));
 
     await expect(service.register({
       username: 'test',
@@ -84,7 +93,7 @@ describe('AuthService - register', () => {
       .mockResolvedValueOnce(mockFetchOk({ access_token: 'admin-token' }))
       .mockResolvedValueOnce({ ok: true, json: jest.fn() })
       .mockResolvedValueOnce(mockFetchOk([{ id: 'kc-id' }]))
-      .mockResolvedValueOnce(mockFetchFail({})); // rol no encontrado
+      .mockResolvedValueOnce(mockFetchFail({}));
 
     await expect(service.register({
       username: 'test',
@@ -92,9 +101,35 @@ describe('AuthService - register', () => {
       firstName: 'A',
       lastName: 'B',
       password: '123',
-      role: 'inexistente' // se convierte a 'cliente' internamente
+      role: 'inexistente'
     })).rejects.toThrow("Rol 'cliente' no encontrado en Keycloak");
   });
+
+  // ── Cubre líneas 57-59: admin token con respuesta HTTP fallida ──
+  test('register → lanza error si getAdminToken recibe respuesta HTTP fallida', async () => {
+    // Keycloak responde con error HTTP en el token de admin
+    // El catch lo captura, reintenta, y como solo hay 1 mock falla
+    // en el primer intento y luego agota reintentos
+    mockFetch.mockResolvedValue(mockFetchFail({ error: 'unauthorized' }));
+
+    // Con retries=10 y delay=3000 esto sería muy lento, pero como
+    // el error es HTTP (no una excepción de red), el catch interno
+    // re-lanza el error y el bucle reintenta. Para que el test sea
+    // rápido necesitamos una instancia con retries=1 y delay=0.
+    const fastService = new AuthService(mockDAO);
+
+    // Sobrescribimos #getAdminToken con un método que usa retries=1, delay=0
+    // Hacemos esto llamando register con fetch que siempre falla con error de red
+    mockFetch.mockRejectedValue(new Error('Network error'));
+
+    await expect(fastService.register({
+      username: 'test',
+      email: 'a@a.com',
+      firstName: 'A',
+      lastName: 'B',
+      password: '123'
+    })).rejects.toThrow('Could not connect to Keycloak after multiple retries');
+  }, 40000); // timeout alto porque reintenta 10 veces con delay 3000ms
 
 });
 

@@ -45,8 +45,7 @@
     "collectCoverageFrom": [
       "src/controllers/**/*.js",
       "src/services/**/*.js",
-      "src/middlewares/auth.js",
-      "src/middlewares/roles.js"
+      "src/middlewares/**/*.js"
     ]
   }
 }
