@@ -9,7 +9,16 @@ export class MongoProductRepository {
     try {
       await client.connect();
       const db = client.db(process.env.MONGO_DB || 'restaurantdb');
-      return await db.collection('platos').find({}).toArray();
+      const products = await db.collection('platos').find({}).toArray();
+
+      return products.map(p => ({
+        id: p._id.toString(),
+        nombre: p.nombre,
+        categoria: p.categoria,
+        descripcion: p.descripcion,
+        id_restaurante: p.id_restaurante,
+        precio: p.precio,
+      }));
     } finally {
       await client.close();
     }

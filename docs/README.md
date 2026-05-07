@@ -348,7 +348,7 @@ Cobertura mínima requerida: **90%** en statements, branches, functions y lines.
 - Al hacer `minikube delete` se pierden todos los datos del cluster
 - En Windows, el tunnel de minikube debe mantenerse abierto en una terminal separada
 - Las imágenes locales deben cargarse con `minikube image load` después de cada `minikube delete`
-
+- Enlace al video demo: https://youtu.be/vNMVTh52BFw
 ---
 
 ## 👨‍💻 Autores
