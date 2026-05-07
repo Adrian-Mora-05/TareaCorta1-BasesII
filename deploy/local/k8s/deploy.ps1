@@ -2,16 +2,19 @@
 # Script de despliegue completo para Kubernetes con Minikube
 #
 # Uso:
-#   .\deploy.ps1                    → MongoDB (default)
-#   .\deploy.ps1 -Engine postgres   → PostgreSQL
-#   .\deploy.ps1 -Clean             → Borra cluster antes (MongoDB)
-#   .\deploy.ps1 -Engine postgres -Clean → Borra cluster y usa PostgreSQL
+#   .\deploy\local\k8s\deploy.ps1                    → MongoDB (default)
+#   .\deploy\local\k8s\deploy.ps1 -Engine postgres   → PostgreSQL
+#   .\deploy\local\k8s\deploy.ps1 -Clean             → Borra cluster antes (MongoDB)
+#   .\deploy\local\k8s\deploy.ps1 -Engine postgres -Clean → Borra cluster y usa PostgreSQL
+
 
 param(
     [ValidateSet("mongodb", "postgres")]
     [string]$Engine = "mongodb",
     [switch]$Clean
 )
+
+$BASE_PATH = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $NS = "restaurantes"
 
@@ -24,7 +27,7 @@ if ($Clean) {
 
 # ── Arrancar minikube ─────────────────────────────────────────────
 Write-Host "`nArrancando Minikube..." -ForegroundColor Yellow
-minikube start --memory=7598 --cpus=3
+minikube start --memory=9500 --cpus=4
 if ($LASTEXITCODE -ne 0) { Write-Host "Error arrancando Minikube" -ForegroundColor Red; exit 1 }
 
 # ── Cargar imágenes locales ───────────────────────────────────────
@@ -35,50 +38,73 @@ Write-Host "Imágenes cargadas." -ForegroundColor Green
 
 # ── Namespace ─────────────────────────────────────────────────────
 Write-Host "`nCreando namespace..." -ForegroundColor Yellow
-kubectl apply -f k8s/namespace.yaml
+kubectl apply -f "$BASE_PATH/namespace.yaml"
 
 # ── ConfigMap y Secrets ───────────────────────────────────────────
 Write-Host "Aplicando configuración (motor: $Engine)..." -ForegroundColor Yellow
-kubectl apply -f k8s/configmap.yaml -n $NS
-kubectl apply -f k8s/secrets.yaml   -n $NS
-$patch = @{
-  data = @{
-    DB_ENGINE = $Engine
-  }
-} | ConvertTo-Json -Compress
 
-kubectl patch configmap restaurantes-config -n $NS --patch $patch
+if ($Engine -eq "mongodb") {
+    kubectl apply -f "$BASE_PATH/configmap.mongo.yaml" -n $NS
+   
+}
+else {
+    kubectl apply -f "$BASE_PATH/configmap.postgres.yaml" -n $NS
+}
+
+kubectl apply -f "$BASE_PATH/secrets.yaml" -n $NS
 
 # ── Realm de Keycloak ─────────────────────────────────────────────
 Write-Host "Cargando realm de Keycloak..." -ForegroundColor Yellow
 kubectl create configmap keycloak-realm-config `
-    --from-file=realm-export.json=./keycloak/realm-export.json `
-    -n $NS --dry-run=client -o yaml | kubectl apply -f -
+    --from-file=realm-export.json="$BASE_PATH/../keycloak/realm-export.json" `
+   -n $NS --dry-run=client -o yaml | kubectl apply -f -
 
 # ── Infraestructura base ──────────────────────────────────────────
 Write-Host "`nLevantando infraestructura base..." -ForegroundColor Yellow
-kubectl apply -f k8s/redis/deployment.yaml          -n $NS
-kubectl apply -f k8s/elasticsearch/statefulset.yaml -n $NS
-kubectl apply -f k8s/keycloak/keycloak-stack.yaml   -n $NS
+kubectl apply -f "$BASE_PATH/redis/deployment.yaml"          -n $NS
+kubectl apply -f "$BASE_PATH/elasticsearch/statefulset.yaml" -n $NS
+kubectl apply -f "$BASE_PATH/keycloak/keycloak-stack.yaml"   -n $NS
 
 # ── Base de datos según motor ─────────────────────────────────────
 if ($Engine -eq "mongodb") {
     Write-Host "`nDesplegando MongoDB sharded..." -ForegroundColor Yellow
-    kubectl apply -f k8s/mongodb/statefulset.yaml -n $NS
+    kubectl apply -f "$BASE_PATH/mongodb/statefulset.yaml" -n $NS
 
-    Write-Host "Esperando config server..." -ForegroundColor Yellow
+    Write-Host "Esperando config server (TCP ready)..." -ForegroundColor Yellow
     kubectl wait --for=condition=ready pod -l app=configsvr --timeout=180s -n $NS
-    Write-Host "Esperando shard..." -ForegroundColor Yellow
-    kubectl wait --for=condition=ready pod -l app=shard     --timeout=180s -n $NS
-    Write-Host "Esperando mongos..." -ForegroundColor Yellow
-    kubectl wait --for=condition=ready pod -l app=mongos    --timeout=90s  -n $NS
-    Write-Host "Esperando Job de init..." -ForegroundColor Yellow
-    kubectl wait --for=condition=complete job/mongo-init    --timeout=120s -n $NS
-    Write-Host "MongoDB listo." -ForegroundColor Green
+    
+    Write-Host "Inicializando configReplSet..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 10
+    kubectl exec configsvr-0 -n $NS -- mongosh --port 27019 --eval "try { rs.status(); print('ya init'); } catch(e) { rs.initiate({_id:'configReplSet',configsvr:true,members:[{_id:0,host:'configsvr-0.configsvr-headless.$NS.svc.cluster.local:27019'}]}); print('iniciado'); }"
+    
+    Write-Host "Esperando eleccion de primario en configReplSet (20s)..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 20
 
-} else {
+    Write-Host "Esperando shards (TCP ready)..." -ForegroundColor Yellow
+    kubectl wait --for=condition=ready pod -l app=shard --timeout=180s -n $NS
+
+    Write-Host "Inicializando shard rs0..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 10
+    kubectl exec shard-0 -n $NS -- mongosh --port 27018 --eval "try { rs.status(); print('ya init'); } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'shard-0.shard-headless.$NS.svc.cluster.local:27018',priority:2},{_id:1,host:'shard-1.shard-headless.$NS.svc.cluster.local:27018',priority:1},{_id:2,host:'shard-2.shard-headless.$NS.svc.cluster.local:27018',priority:1}]}); print('iniciado'); }"
+
+    Write-Host "Esperando eleccion de primario en rs0 (25s)..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 25
+
+    Write-Host "Esperando mongos..." -ForegroundColor Yellow
+    kubectl wait --for=condition=ready pod -l app=mongos --timeout=180s -n $NS
+    Write-Host "Mongos listo." -ForegroundColor Green
+
+    Write-Host "Registrando shard y configurando sharding..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 10
+    kubectl exec deployment/mongos -n $NS -- mongosh --eval "sh.addShard('rs0/shard-0.shard-headless.$NS.svc.cluster.local:27018,shard-1.shard-headless.$NS.svc.cluster.local:27018,shard-2.shard-headless.$NS.svc.cluster.local:27018')"
+    kubectl exec deployment/mongos -n $NS -- mongosh --eval "sh.enableSharding('restaurantdb'); sh.shardCollection('restaurantdb.pedidos',{id_restaurante:'hashed'}); sh.shardCollection('restaurantdb.reservaciones',{id_restaurante:'hashed'}); print('Sharding listo')"
+    
+    Write-Host "MongoDB listo." -ForegroundColor Green
+} 
+else {
     Write-Host "`nDesplegando PostgreSQL..." -ForegroundColor Yellow
-    kubectl apply -f k8s/postgres/statefulset.yaml -n $NS
+    kubectl apply -f "$BASE_PATH/postgres/init-configmap.yaml" -n $NS
+    kubectl apply -f "$BASE_PATH/postgres/statefulset.yaml" -n $NS
     kubectl wait --for=condition=ready pod -l app=postgres --timeout=120s -n $NS
     Write-Host "PostgreSQL listo." -ForegroundColor Green
 }
@@ -95,10 +121,10 @@ Write-Host "Keycloak listo." -ForegroundColor Green
 
 # ── Microservicios ────────────────────────────────────────────────
 Write-Host "`nLevantando microservicios..." -ForegroundColor Yellow
-kubectl apply -f k8s/api/deployment.yaml    -n $NS
-kubectl apply -f k8s/api/hpa.yaml           -n $NS
-kubectl apply -f k8s/search/deployment.yaml -n $NS
-kubectl apply -f k8s/nginx/deployment.yaml  -n $NS
+kubectl apply -f "$BASE_PATH/api/deployment.yaml"    -n $NS
+kubectl apply -f "$BASE_PATH/api/hpa.yaml"           -n $NS
+kubectl apply -f "$BASE_PATH/search/deployment.yaml" -n $NS
+kubectl apply -f "$BASE_PATH/nginx/deployment.yaml"  -n $NS
 
 Write-Host "`nEsperando API, Search y Nginx..." -ForegroundColor Yellow
 kubectl wait --for=condition=ready pod -l app=api    --timeout=120s -n $NS

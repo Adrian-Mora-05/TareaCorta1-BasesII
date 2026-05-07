@@ -4,19 +4,13 @@ metadata:
   name: restaurantes-config
   namespace: restaurantes
 data:
-  # Motor de BD — cambiar a 'mongodb' para usar el stack Mongo
-  DB_ENGINE: "mongodb"
+  # Motor de BD
+  DB_ENGINE: "postgres"
 
   # Postgres
   DB_HOST: "postgres-service"
   DB_PORT: "5432"
   DB_NAME: "restaurantdb"
-
-  # MongoDB (usado cuando DB_ENGINE=mongodb)
-  # Apunta a mongos (el router), no al shard directamente.
-  # mongos distribuye las queries entre shards automáticamente.
-  MONGO_URL: "mongodb://mongos-service:27017/"
-  MONGO_DB:  "restaurantdb"
 
   # Keycloak
   KEYCLOAK_URL:        "http://keycloak-service:8080"

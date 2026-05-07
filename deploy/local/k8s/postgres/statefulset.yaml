@@ -41,19 +41,20 @@ spec:
           volumeMounts:
             - name: pg-data
               mountPath: /var/lib/postgresql/data
-            # Monta los scripts SQL de inicialización
             - name: init-scripts
               mountPath: /docker-entrypoint-initdb.d
+           
           readinessProbe:
             exec:
               command:
                 - pg_isready
                 - "-U"
-                - "$(POSTGRES_USER)"
+                - "postgres"
                 - "-d"
-                - "$(POSTGRES_DB)"
-            initialDelaySeconds: 10
+                - "restaurantdb"
+            initialDelaySeconds: 15
             periodSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu:    "100m"
@@ -64,7 +65,7 @@ spec:
       volumes:
         - name: init-scripts
           configMap:
-            name: postgres-init-scripts   # Ver postgres/init-configmap.yaml
+            name: postgres-init-scripts
   volumeClaimTemplates:
     - metadata:
         name: pg-data

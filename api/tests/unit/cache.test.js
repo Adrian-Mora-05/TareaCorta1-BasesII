@@ -19,7 +19,7 @@ const { getCache, setCache, deleteCache, deletePattern, TTL } = await import('..
 describe('cache - TTL', () => {
 
   test('TTL tiene los valores correctos', () => {
-    // Los TTL fueron actualizados por tu compañero
+    
     expect(TTL.RESTAURANTS).toBe(86400); // 24 horas
     expect(TTL.MENUS).toBe(86400);        // 1 hora
     expect(TTL.SEARCH).toBe(60);         // 1 minuto

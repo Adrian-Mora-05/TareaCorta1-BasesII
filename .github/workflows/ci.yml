@@ -89,10 +89,10 @@ jobs:
 
       - name: Inicializar base de datos
         run: |
-          psql -h localhost -U admin -d restaurantdb -f db/init/01_schema.sql
-          psql -h localhost -U admin -d restaurantdb -f db/init/02_tablas.sql
-          psql -h localhost -U admin -d restaurantdb -f db/init/03_funciones.sql
-          psql -h localhost -U admin -d restaurantdb -f db/init/04_seed.sql
+          psql -h localhost -U admin -d restaurantdb -f db/postgres/init/01_schema.sql
+          psql -h localhost -U admin -d restaurantdb -f db/postgres/init/02_tablas.sql
+          psql -h localhost -U admin -d restaurantdb -f db/postgres/init/03_funciones.sql
+          psql -h localhost -U admin -d restaurantdb -f db/postgres/init/04_seed.sql
         env:
           PGPASSWORD: admin123
 
